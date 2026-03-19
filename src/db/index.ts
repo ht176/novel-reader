@@ -7,6 +7,7 @@
  * - progress: 阅读进度表
  * - sources: 书源配置表
  * - cache: 缓存表 (网络请求结果)
+ * - stats: 阅读统计表
  */
 
 import Dexie from 'dexie';
@@ -101,6 +102,20 @@ export interface CacheItem {
 }
 
 /**
+ * 阅读统计接口定义
+ */
+export interface ReadingStat {
+  id?: number;                // 自增 ID
+  bookId: number;             // 书籍 ID
+  date: string;               // 日期 (YYYY-MM-DD)
+  readTime: number;           // 阅读时间（秒）
+  chaptersRead: number;       // 阅读章节数
+  wordsRead: number;          // 阅读字数
+  createdAt: number;          // 创建时间戳
+  updatedAt: number;          // 更新时间戳
+}
+
+/**
  * 小说阅读器数据库类
  * 
  * 使用方法：
@@ -129,18 +144,21 @@ export class NovelReaderDB extends Dexie {
   progress!: Table<ReadingProgress, number>;
   sources!: Table<BookSource, number>;
   cache!: Table<CacheItem, number>;
+  stats!: Table<ReadingStat, number>;
 
   constructor() {
     super('NovelReader');
 
     // 定义数据库版本和表结构
-    this.version(1).stores({
-      books: '++id, title, author, status, *tags, sourceId, createdAt, updatedAt',
-      chapters: '++id, bookId, [bookId+order], url',
-      progress: '++id, bookId, chapterId, lastReadAt',
-      sources: '++id, name, enabled, createdAt',
-      cache: '++id, url, expiredAt'
-    });
+    this.version(2) // 更新版本号
+      .stores({
+        books: '++id, title, author, status, *tags, sourceId, createdAt, updatedAt',
+        chapters: '++id, bookId, [bookId+order], url',
+        progress: '++id, bookId, chapterId, lastReadAt',
+        sources: '++id, name, enabled, createdAt',
+        cache: '++id, url, expiredAt',
+        stats: '++id, bookId, date' // 添加统计表
+      });
 
     // 设置表属性 (类型提示)
     // Note: mapToClass removed for type safety

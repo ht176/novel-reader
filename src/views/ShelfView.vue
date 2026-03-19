@@ -168,6 +168,10 @@
         <span class="nav-icon">🔍</span>
         <span class="nav-label">书城</span>
       </router-link>
+      <router-link to="/stats" class="nav-item">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">统计</span>
+      </router-link>
       <router-link to="/settings" class="nav-item">
         <span class="nav-icon">⚙️</span>
         <span class="nav-label">设置</span>

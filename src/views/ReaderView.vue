@@ -201,8 +201,9 @@
 
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { db, type Book, type Chapter } from '@/db';
 import { useBreakpoints } from '@vueuse/core';
+import { db, type Book, type Chapter } from '@/db';
+import { useReadingStatsStore } from '@/stores/reading-stats';
 
 // ============ 路由 ============
 const route = useRoute();
@@ -223,6 +224,11 @@ const showControls = ref(true);
 const showMenu = ref(false);
 const showChapterList = ref(false);
 const contentRef = ref<HTMLElement | null>(null);
+
+// ============ 阅读统计 ============
+const startTime = ref<number>(0); // 开始阅读时间戳
+const sessionReadTime = ref<number>(0); // 当前会话阅读时间（秒）
+const statsStore = useReadingStatsStore();
 
 // ============ 阅读设置 (从 localStorage 读取) ============
 const fontSize = ref<number>(parseInt(localStorage.getItem('reader-fontSize') || '16'));
@@ -251,11 +257,32 @@ const contentStyle = computed(() => ({
 onMounted(async () => {
   await loadBook();
   window.addEventListener('keydown', handleKeydown);
+  
+  // 开始记录阅读时间
+  startTime.value = Date.now();
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown);
   saveSettings();
+  
+  // 记录本次阅读时间
+  if (currentBook.value?.id && startTime.value > 0) {
+    const elapsed = (Date.now() - startTime.value) / 1000; // 转换为秒
+    const totalTime = sessionReadTime.value + elapsed;
+    
+    if (totalTime > 0) {
+      // 记录阅读统计
+      statsStore.recordReading(
+        currentBook.value.id,
+        Math.round(totalTime), // 阅读时间（秒）
+        0, // 章节数（当前只是停留时间）
+        0  // 字数（当前只是停留时间）
+      ).catch(err => {
+        console.error('[ReaderView] 记录阅读统计失败:', err);
+      });
+    }
+  }
 });
 
 // ============ 方法 ============
@@ -368,6 +395,25 @@ async function saveProgress() {
   };
   
   await db.progress.put(progress);
+  
+  // 记录章节阅读统计
+  if (startTime.value > 0) {
+    const elapsed = (Date.now() - startTime.value) / 1000; // 转换为秒
+    sessionReadTime.value += elapsed;
+    
+    // 记录阅读统计
+    statsStore.recordReading(
+      currentBook.value.id!,
+      Math.round(elapsed), // 阅读时间（秒）
+      1, // 阅读章节数
+      currentChapter.value.wordCount || 0 // 阅读字数
+    ).catch(err => {
+      console.error('[ReaderView] 记录章节阅读统计失败:', err);
+    });
+    
+    // 重置开始时间，开始记录下一个时间段
+    startTime.value = Date.now();
+  }
 }
 
 /**
