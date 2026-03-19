@@ -13,6 +13,7 @@
   "dependencies": {
     "@capacitor/cli": "^8.2.0",
     "@capacitor/core": "^8.2.0",
+    "@vueuse/core": "^14.2.1",
     "cheerio": "^1.2.0",
     "dexie": "^4.3.0",
     "epub-parser": "^0.2.5",

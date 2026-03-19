@@ -1,0 +1,288 @@
+/**
+ * Design Tokens - 设计令牌系统
+ * 
+ * 统一的颜色、间距、字体、阴影等设计变量
+ * 所有组件都应使用这些变量，确保设计一致性
+ */
+
+:root {
+  /* ═══════════════════════════════════════════════════════════
+     颜色系统
+     ═══════════════════════════════════════════════════════════ */
+  
+  /* 主色调 - 蓝色系 */
+  --color-primary-50: #E3F2FD;
+  --color-primary-100: #BBDEFB;
+  --color-primary-200: #90CAF9;
+  --color-primary-300: #64B5F6;
+  --color-primary-400: #42A5F5;
+  --color-primary-500: #2196F3;
+  --color-primary-600: #1E88E5;
+  --color-primary-700: #1976D2;
+  --color-primary-800: #1565C0;
+  --color-primary-900: #0D47A1;
+  
+  /* 辅助色 */
+  --color-success: #4CAF50;
+  --color-warning: #FF9800;
+  --color-danger: #f44336;
+  --color-info: #2196F3;
+  
+  /* 中性色 */
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f5f5f5;
+  --color-neutral-200: #eeeeee;
+  --color-neutral-300: #e0e0e0;
+  --color-neutral-400: #bdbdbd;
+  --color-neutral-500: #9e9e9e;
+  --color-neutral-600: #757575;
+  --color-neutral-700: #616161;
+  --color-neutral-800: #424242;
+  --color-neutral-900: #212121;
+  
+  /* 语义色 */
+  --color-bg: var(--color-neutral-50);
+  --color-bg-elevated: var(--color-neutral-0, #ffffff);
+  --color-surface: #ffffff;
+  --color-surface-secondary: var(--color-neutral-100);
+  --color-text: var(--color-neutral-900);
+  --color-text-primary: var(--color-neutral-900);
+  --color-text-secondary: var(--color-neutral-600);
+  --color-text-tertiary: var(--color-neutral-400);
+  --color-border: var(--color-neutral-200);
+  --color-border-strong: var(--color-neutral-300);
+  
+  /* ═══════════════════════════════════════════════════════════
+     间距系统 (4px 基准)
+     ═══════════════════════════════════════════════════════════ */
+  
+  --space-0: 0;
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
+  --space-16: 4rem;    /* 64px */
+  --space-20: 5rem;    /* 80px */
+  --space-24: 6rem;    /* 96px */
+  
+  /* ═══════════════════════════════════════════════════════════
+     字体系统
+     ═══════════════════════════════════════════════════════════ */
+  
+  /* 字体族 */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 
+               'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 
+               sans-serif;
+  --font-serif: 'Georgia', 'Times New Roman', serif;
+  --font-mono: 'SF Mono', 'Monaco', 'Consolas', 'Liberation Mono', monospace;
+  
+  /* 流体字体大小 - 自动根据视口缩放 */
+  --text-xs: clamp(0.75rem, 0.6875rem + 0.3125vw, 0.875rem);
+  --text-sm: clamp(0.875rem, 0.8125rem + 0.3125vw, 1rem);
+  --text-base: clamp(1rem, 0.9375rem + 0.3125vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1.0625rem + 0.3125vw, 1.25rem);
+  --text-xl: clamp(1.25rem, 1.125rem + 0.625vw, 1.5rem);
+  --text-2xl: clamp(1.5rem, 1.25rem + 1.25vw, 2rem);
+  --text-3xl: clamp(1.875rem, 1.5rem + 1.875vw, 2.5rem);
+  
+  /* 字重 */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  
+  /* 行高 */
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+  
+  /* ═══════════════════════════════════════════════════════════
+     圆角系统
+     ═══════════════════════════════════════════════════════════ */
+  
+  --radius-none: 0;
+  --radius-sm: 0.25rem;   /* 4px */
+  --radius-md: 0.5rem;    /* 8px */
+  --radius-lg: 0.75rem;   /* 12px */
+  --radius-xl: 1rem;      /* 16px */
+  --radius-2xl: 1.5rem;   /* 24px */
+  --radius-full: 9999px;
+  
+  /* ═══════════════════════════════════════════════════════════
+     阴影系统
+     ═══════════════════════════════════════════════════════════ */
+  
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.25);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  
+  /* ═══════════════════════════════════════════════════════════
+     布局系统
+     ═══════════════════════════════════════════════════════════ */
+  
+  /* 容器最大宽度 */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1440px;
+  --container-max: var(--container-xl);
+  
+  /* 固定高度 */
+  --header-height: 56px;
+  --header-height-lg: 64px;
+  --bottom-nav-height: 60px;
+  --bottom-nav-height-safe: calc(60px + env(safe-area-inset-bottom));
+  
+  /* 断点 (用于 JS) */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  
+  /* ═══════════════════════════════════════════════════════════
+     动画系统
+     ═══════════════════════════════════════════════════════════ */
+  
+  /* 过渡时间 */
+  --duration-75: 75ms;
+  --duration-100: 100ms;
+  --duration-150: 150ms;
+  --duration-200: 200ms;
+  --duration-300: 300ms;
+  --duration-500: 500ms;
+  
+  /* 缓动函数 */
+  --ease-linear: linear;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  
+  /* ═══════════════════════════════════════════════════════════
+     层级系统 (z-index)
+     ═══════════════════════════════════════════════════════════ */
+  
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-popover: 600;
+  --z-tooltip: 700;
+  --z-toast: 800;
+  
+  /* ═══════════════════════════════════════════════════════════
+     暗黑模式
+     ═══════════════════════════════════════════════════════════ */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: var(--color-neutral-900);
+    --color-bg-elevated: var(--color-neutral-800);
+    --color-surface: var(--color-neutral-800);
+    --color-surface-secondary: var(--color-neutral-700);
+    --color-text: var(--color-neutral-50);
+    --color-text-primary: var(--color-neutral-50);
+    --color-text-secondary: var(--color-neutral-400);
+    --color-text-tertiary: var(--color-neutral-500);
+    --color-border: var(--color-neutral-700);
+    --color-border-strong: var(--color-neutral-600);
+    
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3), 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   通用工具类
+   ═══════════════════════════════════════════════════════════ */
+
+/* 文本截断 */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 滚动条美化 */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-300) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-300);
+  border-radius: var(--radius-full);
+}
+
+/* 安全区域 (iPhone) */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-area-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* 禁用文字选择 */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 平滑滚动 */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}
+
+/* 焦点可见 */
+.focus-visible-ring:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}

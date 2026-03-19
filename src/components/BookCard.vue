@@ -1,52 +1,69 @@
 <template>
-  <div class="book-card" @click="$emit('click', book)" @delete="$emit('delete', book)">
-    <!-- 封面 -->
+  <article 
+    class="book-card" 
+    @click="$emit('click', book)"
+    @delete="$emit('delete', book)"
+  >
+    <!-- 封面区域 -->
     <div class="book-cover">
       <div v-if="!book.coverUrl" class="cover-placeholder">
         <span class="cover-icon">📖</span>
         <span class="cover-initial">{{ getInitial(book.title) }}</span>
       </div>
-      <img v-else :src="book.coverUrl" :alt="book.title" class="cover-image" />
+      <img 
+        v-else 
+        :src="book.coverUrl" 
+        :alt="book.title" 
+        class="cover-image"
+        loading="lazy"
+      />
       
-      <!-- 删除按钮 -->
-      <button class="btn-delete" @click.stop="$emit('delete', book)" title="删除">
+      <!-- 删除按钮 (悬停显示) -->
+      <button 
+        class="btn-delete" 
+        @click.stop="$emit('delete', book)" 
+        title="删除"
+        aria-label="删除书籍"
+      >
         🗑️
       </button>
+      
+      <!-- 状态标签 -->
+      <div class="status-badge" :class="getStatusClass(book.status)">
+        {{ getStatusText(book.status) }}
+      </div>
     </div>
     
     <!-- 书籍信息 -->
     <div class="book-info">
-      <h3 class="book-title" :title="book.title">{{ book.title }}</h3>
+      <h3 class="book-title" :title="book.title">
+        {{ book.title }}
+      </h3>
       <p class="book-author">{{ book.author }}</p>
       
       <!-- 阅读进度 -->
-      <div v-if="showProgress" class="progress-container">
+      <div v-if="showProgress && getProgress(book) > 0" class="progress-section">
         <div class="progress-bar">
           <div 
             class="progress-fill" 
             :style="{ width: `${getProgress(book)}%` }"
-          ></div>
+          />
         </div>
         <span class="progress-text">{{ getProgress(book) }}%</span>
       </div>
-      
-      <!-- 状态标签 -->
-      <div class="status-tag" :class="getStatusClass(book.status)">
-        {{ getStatusText(book.status) }}
-      </div>
     </div>
-  </div>
+  </article>
 </template>
 
 <script setup lang="ts">
 /**
  * BookCard - 书籍卡片组件
  * 
- * 功能：
- * 1. 展示书籍封面、标题、作者
- * 2. 显示阅读进度
- * 3. 显示阅读状态
- * 4. 删除书籍
+ * 特性：
+ * - 响应式设计 (容器查询)
+ * - 悬停动画
+ * - 懒加载封面
+ * - 无障碍支持
  * 
  * @emits click - 点击书籍时触发
  * @emits delete - 点击删除时触发
@@ -55,11 +72,7 @@
 import type { Book } from '@/db';
 
 // ============ Props ============
-/**
- * @property {Book} book - 书籍信息对象
- * @property {boolean} showProgress - 是否显示进度条 (默认 true)
- */
-const props = defineProps({
+defineProps({
   book: {
     type: Object as () => Book,
     required: true
@@ -71,45 +84,21 @@ const props = defineProps({
 });
 
 // ============ Emits ============
-const emit = defineEmits<{
+defineEmits<{
   click: [book: Book];
   delete: [book: Book];
 }>();
 
 // ============ 方法 ============
 
-/**
- * 获取书名的首字作为封面占位符
- * 
- * @param title - 书名
- * @returns 首字
- */
 function getInitial(title: string): string {
   return title.charAt(0).toUpperCase();
 }
 
-/**
- * 获取阅读进度百分比
- * 
- * 逻辑说明：
- * 1. 从数据库获取阅读进度
- * 2. 计算已读章节 / 总章节 * 100
- * 
- * @param book - 书籍信息
- * @returns 进度百分比 (0-100)
- */
 function getProgress(book: Book): number {
-  // TODO: 实际项目中需要从进度表读取
-  // 这里简化处理，假设每本书都有 progress 属性
   return (book as any).progress || 0;
 }
 
-/**
- * 根据状态获取样式类
- * 
- * @param status - 阅读状态
- * @returns CSS 类名
- */
 function getStatusClass(status: Book['status']): string {
   const classMap = {
     reading: 'status-reading',
@@ -119,12 +108,6 @@ function getStatusClass(status: Book['status']): string {
   return classMap[status] || '';
 }
 
-/**
- * 根据状态获取显示文本
- * 
- * @param status - 阅读状态
- * @returns 状态文本
- */
 function getStatusText(status: Book['status']): string {
   const textMap = {
     reading: '阅读中',
@@ -136,181 +119,300 @@ function getStatusText(status: Book['status']): string {
 </script>
 
 <style scoped>
-/**
- * 书籍卡片样式
- */
+@import '@/assets/design-tokens.css';
+
+/* ═══════════════════════════════════════════════════════════
+   书籍卡片容器
+   ═══════════════════════════════════════════════════════════ */
 
 .book-card {
-  background: white;
-  border-radius: 12px;
+  /* 启用容器查询 */
+  container-type: inline-size;
+  container-name: book-card;
+  
+  /* 基础样式 */
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s;
+  box-shadow: var(--shadow-md);
   cursor: pointer;
+  transition: 
+    transform var(--duration-200) var(--ease-in-out),
+    box-shadow var(--duration-200) var(--ease-in-out);
 }
 
 .book-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
-/* 封面区域 */
+.book-card:active {
+  transform: translateY(-2px);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   封面区域
+   ═══════════════════════════════════════════════════════════ */
+
 .book-cover {
   position: relative;
   width: 100%;
-  padding-top: 133%; /* 3:4 比例 */
-  background: #f5f5f5;
+  aspect-ratio: 3 / 4;
+  background: var(--color-neutral-100);
   overflow: hidden;
 }
 
 .cover-placeholder {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-700) 100%);
   color: white;
 }
 
 .cover-icon {
-  font-size: 48px;
-  margin-bottom: 10px;
+  font-size: clamp(2rem, 5vw, 3rem);
+  margin-bottom: var(--space-2);
+  opacity: 0.9;
 }
 
 .cover-initial {
-  font-size: 32px;
-  font-weight: bold;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
 }
 
 .cover-image {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform var(--duration-300) var(--ease-out);
 }
 
-/* 删除按钮 */
+.book-card:hover .cover-image {
+  transform: scale(1.05);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   删除按钮
+   ═══════════════════════════════════════════════════════════ */
+
 .btn-delete {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: var(--text-base);
+  color: white;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all var(--duration-200) var(--ease-in-out);
+  z-index: var(--z-base);
 }
 
 .book-card:hover .btn-delete {
   opacity: 1;
+  transform: scale(1);
 }
 
 .btn-delete:hover {
-  background: rgba(244, 67, 54, 0.9);
+  background: var(--color-danger);
+  transform: scale(1.1);
 }
 
-/* 书籍信息 */
+/* ═══════════════════════════════════════════════════════════
+   状态标签
+   ═══════════════════════════════════════════════════════════ */
+
+.status-badge {
+  position: absolute;
+  bottom: var(--space-2);
+  left: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  box-shadow: var(--shadow-sm);
+}
+
+.status-reading {
+  color: var(--color-primary-600);
+}
+
+.status-completed {
+  color: var(--color-success);
+}
+
+.status-paused {
+  color: var(--color-warning);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   书籍信息
+   ═══════════════════════════════════════════════════════════ */
+
 .book-info {
-  padding: 12px;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .book-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 6px;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: var(--leading-tight);
 }
 
 .book-author {
-  font-size: 13px;
-  color: #999;
-  margin: 0 0 10px;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
 }
 
-/* 阅读进度 */
-.progress-container {
+/* ═══════════════════════════════════════════════════════════
+   阅读进度
+   ═══════════════════════════════════════════════════════════ */
+
+.progress-section {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
 }
 
 .progress-bar {
   flex: 1;
   height: 6px;
-  background: #f0f0f0;
-  border-radius: 3px;
+  background: var(--color-neutral-200);
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4CAF50, #8BC34A);
-  border-radius: 3px;
-  transition: width 0.3s;
+  background: linear-gradient(
+    90deg, 
+    var(--color-primary-400), 
+    var(--color-primary-600)
+  );
+  border-radius: var(--radius-full);
+  transition: width var(--duration-300) var(--ease-out);
 }
 
 .progress-text {
-  font-size: 12px;
-  color: #666;
-  min-width: 35px;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-medium);
+  min-width: 32px;
   text-align: right;
 }
 
-/* 状态标签 */
-.status-tag {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
-}
+/* ═══════════════════════════════════════════════════════════
+   容器查询 - 响应式布局
+   ═══════════════════════════════════════════════════════════ */
 
-.status-reading {
-  background: #E3F2FD;
-  color: #1976D2;
-}
-
-.status-completed {
-  background: #E8F5E9;
-  color: #388E3C;
-}
-
-.status-paused {
-  background: #FFF3E0;
-  color: #F57C00;
-}
-
-/* 移动端适配 */
-@media (max-width: 768px) {
+/* 小容器 (< 160px) - 紧凑布局 */
+@container book-card (max-width: 159px) {
   .book-info {
-    padding: 10px;
+    padding: var(--space-2);
   }
   
   .book-title {
-    font-size: 14px;
+    font-size: var(--text-sm);
+    -webkit-line-clamp: 1;
   }
   
   .book-author {
-    font-size: 12px;
+    font-size: var(--text-xs);
+  }
+  
+  .status-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+}
+
+/* 中等容器 (160px - 200px) - 标准布局 */
+@container book-card (min-width: 160px) {
+  .book-info {
+    padding: var(--space-3);
+  }
+  
+  .book-title {
+    font-size: var(--text-base);
+  }
+}
+
+/* 大容器 (> 200px) - 增强布局 */
+@container book-card (min-width: 200px) {
+  .book-info {
+    padding: var(--space-4);
+    gap: var(--space-3);
+  }
+  
+  .book-title {
+    font-size: var(--text-lg);
+  }
+  
+  .book-author {
+    font-size: var(--text-base);
+  }
+  
+  .progress-bar {
+    height: 8px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   暗黑模式适配
+   ═══════════════════════════════════════════════════════════ */
+
+@media (prefers-color-scheme: dark) {
+  .cover-placeholder {
+    background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-800) 100%);
+  }
+  
+  .status-badge {
+    background: rgba(45, 45, 45, 0.95);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   无障碍
+   ═══════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .book-card,
+  .book-card:hover,
+  .cover-image,
+  .progress-fill,
+  .btn-delete {
+    transition: none;
+    transform: none;
   }
 }
 </style>
