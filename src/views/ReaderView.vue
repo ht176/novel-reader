@@ -1,62 +1,74 @@
 <template>
-  <div class="reader-view" :class="themeClass" @click="toggleControls">
+  <article 
+    class="reader-view" 
+    :class="themeClass"
+    @click="toggleControls"
+  >
     <!-- 顶部控制栏 -->
-    <transition name="slide-down">
-      <div v-show="showControls" class="reader-header">
-        <button class="btn-back" @click.stop="goBack">
-          ← 返回
-        </button>
-        <h1 class="reader-title">{{ currentBook?.title }}</h1>
-        <button class="btn-menu" @click.stop="showMenu = true">
-          ⋮
-        </button>
-      </div>
+    <transition name="slide-down" appear>
+      <header v-show="showControls" class="reader-header">
+        <div class="container flex items-center justify-between">
+          <button class="btn-icon" @click.stop="goBack" aria-label="返回">
+            ←
+          </button>
+          <h1 class="reader-title truncate">{{ currentBook?.title }}</h1>
+          <button class="btn-icon" @click.stop="showMenu = true" aria-label="菜单">
+            ⋮
+          </button>
+        </div>
+      </header>
     </transition>
 
     <!-- 阅读区域 -->
-    <div class="reader-content" ref="contentRef">
-      <div v-if="loading" class="loading-container">
+    <main class="reader-content" ref="contentRef">
+      <!-- 加载状态 -->
+      <div v-if="loading" class="loading-container animate-fade-in">
         <div class="loading-spinner"></div>
-        <p>加载中...</p>
+        <p class="loading-text">加载中...</p>
       </div>
       
-      <div v-else-if="error" class="error-container">
-        <p>❌ {{ error }}</p>
-        <button @click="loadChapter" class="btn-retry">重试</button>
+      <!-- 错误状态 -->
+      <div v-else-if="error" class="error-container animate-fade-in">
+        <div class="error-icon">❌</div>
+        <p class="error-message">{{ error }}</p>
+        <button @click="loadChapter" class="btn btn-primary">重试</button>
       </div>
       
-      <div v-else class="chapter-container">
+      <!-- 章节内容 -->
+      <div v-else class="chapter-container animate-fade-in">
         <h2 class="chapter-title">{{ currentChapter?.title }}</h2>
         <div 
           class="chapter-content"
           v-html="currentChapter?.content"
           :style="contentStyle"
-        ></div>
+        />
         
         <!-- 章节导航 -->
-        <div class="chapter-nav">
+        <nav class="chapter-nav">
           <button 
             v-if="hasPrevChapter" 
             @click.stop="prevChapter"
-            class="btn-chapter"
+            class="btn btn-outline"
           >
             ← 上一章
           </button>
           <button 
             v-if="hasNextChapter" 
             @click.stop="nextChapter"
-            class="btn-chapter"
+            class="btn btn-outline"
           >
             下一章 →
           </button>
-        </div>
+        </nav>
       </div>
-    </div>
+    </main>
 
     <!-- 底部进度条 -->
-    <transition name="slide-up">
-      <div v-show="showControls" class="reader-footer">
-        <span class="progress-text">{{ currentChapterOrder + 1 }} / {{ totalChapters }}</span>
+    <transition name="slide-up" appear>
+      <footer v-show="showControls" class="reader-footer">
+        <span class="progress-text text-sm">
+          {{ currentChapterOrder + 1 }} / {{ totalChapters }}
+        </span>
         <input 
           type="range" 
           min="0" 
@@ -64,180 +76,172 @@
           :value="currentChapterOrder"
           @input="jumpToChapter"
           class="progress-slider"
+          aria-label="章节进度"
         />
-      </div>
+      </footer>
     </transition>
 
     <!-- 设置菜单 -->
-    <transition name="fade">
+    <transition name="fade" appear>
       <div v-if="showMenu" class="menu-overlay" @click="showMenu = false">
-        <div class="menu-content" @click.stop>
-          <h3 class="menu-title">设置</h3>
+        <div class="menu-content animate-slide-up" @click.stop>
+          <header class="menu-header">
+            <h3 class="menu-title">阅读设置</h3>
+            <button class="btn-icon" @click="showMenu = false" aria-label="关闭">✕</button>
+          </header>
           
-          <!-- 字体大小 -->
-          <div class="menu-item">
-            <label>字体大小</label>
-            <div class="size-buttons">
-              <button 
-                :class="['size-btn', { active: fontSize === 14 }]"
-                @click="fontSize = 14"
-              >
-                小
+          <div class="menu-body scrollbar-thin">
+            <!-- 字体大小 -->
+            <section class="menu-section">
+              <label class="menu-label">字体大小</label>
+              <div class="size-buttons">
+                <button 
+                  v-for="size in [14, 16, 18, 20]"
+                  :key="size"
+                  :class="['size-btn', { active: fontSize === size }]"
+                  @click="fontSize = size"
+                >
+                  {{ size === 14 ? '小' : size === 16 ? '中' : size === 18 ? '大' : '超大' }}
+                </button>
+              </div>
+            </section>
+            
+            <!-- 主题切换 -->
+            <section class="menu-section">
+              <label class="menu-label">主题</label>
+              <div class="theme-buttons">
+                <button 
+                  :class="['theme-btn', { active: theme === 'light' }]"
+                  @click="theme = 'light'"
+                >
+                  ☀️ 日间
+                </button>
+                <button 
+                  :class="['theme-btn', { active: theme === 'dark' }]"
+                  @click="theme = 'dark'"
+                >
+                  🌙 夜间
+                </button>
+                <button 
+                  :class="['theme-btn', { active: theme === 'sepia' }]"
+                  @click="theme = 'sepia'"
+                >
+                  📜 护眼
+                </button>
+              </div>
+            </section>
+            
+            <!-- 行间距 -->
+            <section class="menu-section">
+              <label class="menu-label">行间距</label>
+              <select v-model="lineHeight" class="line-height-select">
+                <option :value="1.5">紧凑 (1.5)</option>
+                <option :value="1.8">正常 (1.8)</option>
+                <option :value="2.2">宽松 (2.2)</option>
+                <option :value="2.6">超宽 (2.6)</option>
+              </select>
+            </section>
+            
+            <!-- 目录 -->
+            <section class="menu-section">
+              <button @click="showChapterList = true" class="btn btn-primary w-full">
+                📑 章节目录
               </button>
-              <button 
-                :class="['size-btn', { active: fontSize === 16 }]"
-                @click="fontSize = 16"
-              >
-                中
-              </button>
-              <button 
-                :class="['size-btn', { active: fontSize === 18 }]"
-                @click="fontSize = 18"
-              >
-                大
-              </button>
-              <button 
-                :class="['size-btn', { active: fontSize === 20 }]"
-                @click="fontSize = 20"
-              >
-                超大
-              </button>
-            </div>
-          </div>
-          
-          <!-- 主题切换 -->
-          <div class="menu-item">
-            <label>主题</label>
-            <div class="theme-buttons">
-              <button 
-                :class="['theme-btn', { active: theme === 'light' }]"
-                @click="theme = 'light'"
-              >
-                ☀️ 日间
-              </button>
-              <button 
-                :class="['theme-btn', { active: theme === 'dark' }]"
-                @click="theme = 'dark'"
-              >
-                🌙 夜间
-              </button>
-              <button 
-                :class="['theme-btn', { active: theme === 'sepia' }]"
-                @click="theme = 'sepia'"
-              >
-                📜 护眼
-              </button>
-            </div>
-          </div>
-          
-          <!-- 行间距 -->
-          <div class="menu-item">
-            <label>行间距</label>
-            <select v-model="lineHeight" class="line-height-select">
-              <option :value="1.5">紧凑</option>
-              <option :value="1.8">正常</option>
-              <option :value="2.2">宽松</option>
-              <option :value="2.6">超宽</option>
-            </select>
-          </div>
-          
-          <!-- 目录 -->
-          <div class="menu-item">
-            <button @click="showChapterList = true" class="btn-chapters">
-              📑 章节目录
-            </button>
+            </section>
           </div>
         </div>
       </div>
     </transition>
 
     <!-- 目录面板 -->
-    <transition name="slide-left">
+    <transition name="slide-left" appear>
       <div v-if="showChapterList" class="chapter-list-overlay" @click="showChapterList = false">
-        <div class="chapter-list-panel" @click.stop>
-          <div class="chapter-list-header">
-            <h3>目录</h3>
-            <button @click="showChapterList = false" class="btn-close">✕</button>
-          </div>
-          <div class="chapter-list-content">
+        <aside class="chapter-list-panel animate-slide-up" @click.stop>
+          <header class="chapter-list-header">
+            <h3>章节目录</h3>
+            <button @click="showChapterList = false" class="btn-icon" aria-label="关闭">✕</button>
+          </header>
+          <div class="chapter-list-content scrollbar-thin">
             <div 
               v-for="chapter in chapters" 
               :key="chapter.id"
               :class="['chapter-item', { active: chapter.id === currentChapter?.id }]"
               @click="selectChapter(chapter)"
+              role="button"
+              tabindex="0"
+              @keyup.enter="selectChapter(chapter)"
             >
-              {{ chapter.order + 1 }}. {{ chapter.title }}
+              <span class="chapter-number">{{ chapter.order + 1 }}.</span>
+              <span class="chapter-name truncate">{{ chapter.title }}</span>
             </div>
           </div>
-        </div>
+        </aside>
       </div>
     </transition>
-  </div>
+  </article>
 </template>
 
 <script setup lang="ts">
 /**
- * ReaderView - 阅读器页面
+ * ReaderView - 阅读器页面 (现代化版本)
  * 
  * 功能：
- * 1. 显示章节内容
- * 2. 章节切换（上一章/下一章）
- * 3. 字体大小、主题、行距设置
- * 4. 阅读进度保存
+ * 1. 章节内容显示 (响应式排版)
+ * 2. 章节切换（上一章/下一章/跳转）
+ * 3. 个性化设置（字体/主题/行距）
+ * 4. 阅读进度自动保存
  * 5. 目录浏览
  * 
- * 路由参数：
- * - bookId: 书籍 ID
- * - chapterId: 章节 ID（可选，默认从进度读取）
+ * 特性：
+ * - 点击屏幕显示/隐藏控制栏
+ * - 三种主题模式（日间/夜间/护眼）
+ * - 流畅动画过渡
+ * - 无障碍支持
  */
 
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { db, type Book, type Chapter } from '@/db';
+import { useBreakpoints } from '@vueuse/core';
 
 // ============ 路由 ============
 const route = useRoute();
 const router = useRouter();
-const bookId = computed(() => Number(route.params.bookId));
 
-// ============ 状态 ============
+// ============ 响应式断点 ============
+const breakpoints = useBreakpoints({ mobile: 768 });
+const isMobile = breakpoints.smaller('mobile');
+
+// ============ 状态管理 ============
 const currentBook = ref<Book | null>(null);
 const chapters = ref<Chapter[]>([]);
 const currentChapter = ref<Chapter | null>(null);
 const currentChapterOrder = ref(0);
 const loading = ref(true);
 const error = ref<string | null>(null);
-
-// ============ 控制状态 ============
 const showControls = ref(true);
 const showMenu = ref(false);
 const showChapterList = ref(false);
 const contentRef = ref<HTMLElement | null>(null);
 
-// ============ 阅读设置 ============
-const fontSize = ref(16);
-const lineHeight = ref(1.8);
-const theme = ref<'light' | 'dark' | 'sepia'>('light');
+// ============ 阅读设置 (从 localStorage 读取) ============
+const fontSize = ref<number>(parseInt(localStorage.getItem('reader-fontSize') || '16'));
+const theme = ref<'light' | 'dark' | 'sepia'>((localStorage.getItem('reader-theme') as any) || 'light');
+const lineHeight = ref<number>(parseFloat(localStorage.getItem('reader-lineHeight') || '1.8'));
 
 // ============ 计算属性 ============
 const totalChapters = computed(() => chapters.value.length);
+
 const hasPrevChapter = computed(() => currentChapterOrder.value > 0);
+
 const hasNextChapter = computed(() => currentChapterOrder.value < totalChapters.value - 1);
 
-/**
- * 根据主题返回 CSS 类名
- */
-const themeClass = computed(() => {
-  return {
-    'theme-light': theme.value === 'light',
-    'theme-dark': theme.value === 'dark',
-    'theme-sepia': theme.value === 'sepia'
-  };
-});
+const themeClass = computed(() => ({
+  'theme-light': theme.value === 'light',
+  'theme-dark': theme.value === 'dark',
+  'theme-sepia': theme.value === 'sepia'
+}));
 
-/**
- * 内容区域样式
- */
 const contentStyle = computed(() => ({
   fontSize: `${fontSize.value}px`,
   lineHeight: String(lineHeight.value)
@@ -246,14 +250,12 @@ const contentStyle = computed(() => ({
 // ============ 生命周期 ============
 onMounted(async () => {
   await loadBook();
-  // 监听键盘事件
   window.addEventListener('keydown', handleKeydown);
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown);
-  // 离开时保存进度
-  saveProgress();
+  saveSettings();
 });
 
 // ============ 方法 ============
@@ -262,43 +264,42 @@ onUnmounted(() => {
  * 加载书籍和章节
  */
 async function loadBook() {
-  loading.value = true;
-  error.value = null;
+  const bookId = parseInt(route.params.bookId as string);
+  
+  if (isNaN(bookId)) {
+    error.value = '无效的书籍 ID';
+    loading.value = false;
+    return;
+  }
   
   try {
-    // 获取书籍信息
-    const book = await db.books.get(bookId.value);
+    // 加载书籍信息
+    const book = await db.books.get(bookId);
     if (!book) {
       throw new Error('书籍不存在');
     }
     currentBook.value = book;
     
-    // 获取所有章节
+    // 加载章节列表
     chapters.value = await db.chapters
       .where('bookId')
-      .equals(bookId.value)
+      .equals(bookId)
       .sortBy('order');
     
-    // 获取阅读进度
-    const progress = await db.progress
-      .where('bookId')
-      .equals(bookId.value)
-      .first();
-    
-    // 确定从哪章开始
-    let startOrder = 0;
-    if (route.params.chapterId) {
-      const chapter = chapters.value.find(c => c.id === Number(route.params.chapterId));
-      if (chapter) {
-        startOrder = chapter.order;
-      }
-    } else if (progress) {
-      startOrder = progress.chapterOrder;
+    if (chapters.value.length === 0) {
+      throw new Error('暂无章节');
     }
     
-    // 加载章节
-    currentChapterOrder.value = startOrder;
-    currentChapter.value = chapters.value[startOrder] || null;
+    // 加载阅读进度或指定章节
+    const chapterId = route.params.chapterId 
+      ? parseInt(route.params.chapterId as string)
+      : await loadProgress(bookId);
+    
+    if (chapterId) {
+      const chapterIndex = chapters.value.findIndex(c => c.id === chapterId);
+      currentChapterOrder.value = chapterIndex >= 0 ? chapterIndex : 0;
+    }
+    
     await loadChapter();
     
   } catch (err) {
@@ -310,12 +311,31 @@ async function loadBook() {
 }
 
 /**
+ * 加载阅读进度
+ */
+async function loadProgress(bookId: number): Promise<number | undefined> {
+  const progress = await db.progress
+    .where('bookId')
+    .equals(bookId)
+    .first();
+  
+  return progress?.chapterId;
+}
+
+/**
  * 加载当前章节
  */
 async function loadChapter() {
   try {
+    loading.value = true;
+    error.value = null;
+    
     const chapter = chapters.value[currentChapterOrder.value];
-    currentChapter.value = chapter || null;
+    if (!chapter) {
+      throw new Error('章节不存在');
+    }
+    
+    currentChapter.value = chapter;
     
     // 滚动到顶部
     if (contentRef.value) {
@@ -323,11 +343,54 @@ async function loadChapter() {
     }
     
     // 保存进度
-    saveProgress();
+    await saveProgress();
     
   } catch (err) {
+    error.value = err instanceof Error ? err.message : '加载失败';
     console.error('[ReaderView] 加载章节失败:', err);
+  } finally {
+    loading.value = false;
   }
+}
+
+/**
+ * 保存阅读进度
+ */
+async function saveProgress() {
+  if (!currentBook.value || !currentChapter.value) return;
+  
+  const progress = {
+    bookId: currentBook.value.id!,
+    chapterId: currentChapter.value.id!,
+    chapterOrder: currentChapterOrder.value,
+    progress: Math.round((currentChapterOrder.value + 1) / totalChapters.value * 100),
+    lastReadAt: Date.now()
+  };
+  
+  await db.progress.put(progress);
+}
+
+/**
+ * 保存设置
+ */
+function saveSettings() {
+  localStorage.setItem('reader-fontSize', String(fontSize.value));
+  localStorage.setItem('reader-theme', theme.value);
+  localStorage.setItem('reader-lineHeight', String(lineHeight.value));
+}
+
+/**
+ * 切换控制栏显示
+ */
+function toggleControls() {
+  showControls.value = !showControls.value;
+}
+
+/**
+ * 返回上一页
+ */
+function goBack() {
+  router.back();
 }
 
 /**
@@ -351,456 +414,528 @@ function nextChapter() {
 }
 
 /**
- * 跳转到指定章节
- * 
- * @param event - 滑块事件
+ * 跳转章节
  */
 function jumpToChapter(event: Event) {
   const target = event.target as HTMLInputElement;
-  const order = Number(target.value);
-  currentChapterOrder.value = order;
-  loadChapter();
+  const order = parseInt(target.value);
+  if (order !== currentChapterOrder.value) {
+    currentChapterOrder.value = order;
+    loadChapter();
+  }
 }
 
 /**
  * 选择章节
- * 
- * @param chapter - 章节对象
  */
 function selectChapter(chapter: Chapter) {
-  currentChapterOrder.value = chapter.order;
-  currentChapter.value = chapter;
-  showChapterList.value = false;
-  loadChapter();
-}
-
-/**
- * 保存阅读进度
- */
-async function saveProgress() {
-  if (!currentBook.value || !currentChapter.value) return;
-  
-  try {
-    const progress = {
-      bookId: bookId.value,
-      chapterId: currentChapter.value.id!,
-      chapterOrder: currentChapterOrder.value,
-      progress: Math.round((currentChapterOrder.value + 1) / totalChapters.value * 100),
-      lastReadAt: Date.now()
-    };
-    
-    // 更新或添加进度
-    const existing = await db.progress
-      .where('bookId')
-      .equals(bookId.value)
-      .first();
-    
-    if (existing) {
-      await db.progress.update(existing.id!, progress);
-    } else {
-      await db.progress.add(progress);
-    }
-    
-    // 更新书籍状态为"阅读中"
-    if (currentBook.value.status === 'completed') {
-      await db.books.update(bookId.value, { status: 'reading' });
-    }
-    
-  } catch (err) {
-    console.error('[ReaderView] 保存进度失败:', err);
+  const index = chapters.value.findIndex(c => c.id === chapter.id);
+  if (index >= 0) {
+    currentChapterOrder.value = index;
+    showChapterList.value = false;
+    loadChapter();
   }
-}
-
-/**
- * 返回书架
- */
-function goBack() {
-  router.push('/');
-}
-
-/**
- * 切换控制栏显示
- */
-function toggleControls() {
-  showControls.value = !showControls.value;
 }
 
 /**
  * 键盘快捷键
- * 
- * @param event - 键盘事件
  */
 function handleKeydown(event: KeyboardEvent) {
-  // 左右方向键切换章节
-  if (event.key === 'ArrowLeft') {
-    prevChapter();
-  } else if (event.key === 'ArrowRight') {
-    nextChapter();
-  }
-  // ESC 隐藏控制栏
-  else if (event.key === 'Escape') {
-    showControls.value = false;
-    showMenu.value = false;
-    showChapterList.value = false;
+  // 菜单打开时不处理
+  if (showMenu.value || showChapterList.value) return;
+  
+  switch (event.key) {
+    case 'ArrowLeft':
+      prevChapter();
+      break;
+    case 'ArrowRight':
+      nextChapter();
+      break;
+    case 'Escape':
+      showMenu.value = false;
+      showChapterList.value = false;
+      break;
+    case 'm':
+    case 'M':
+      showMenu.value = !showMenu.value;
+      break;
+    case 't':
+    case 'T':
+      showChapterList.value = !showChapterList.value;
+      break;
   }
 }
 </script>
 
 <style scoped>
-/**
- * 阅读器页面样式
- */
+@import '@/assets/design-tokens.css';
+
+/* ═══════════════════════════════════════════════════════════
+   阅读器布局
+   ═══════════════════════════════════════════════════════════ */
 
 .reader-view {
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  min-height: 100vh;
+  background: var(--reader-bg, #f5f5f5);
+  transition: background var(--duration-300) var(--ease-in-out);
 }
 
 /* 主题 */
 .theme-light {
-  background: #f5f5f5;
-  color: #333;
+  --reader-bg: var(--color-neutral-50);
+  --reader-surface: #ffffff;
+  --reader-text: var(--color-neutral-900);
+  --reader-text-secondary: var(--color-neutral-600);
 }
 
 .theme-dark {
-  background: #1a1a1a;
-  color: #ccc;
+  --reader-bg: #1a1a1a;
+  --reader-surface: #2d2d2d;
+  --reader-text: #e0e0e0;
+  --reader-text-secondary: #a0a0a0;
 }
 
 .theme-sepia {
-  background: #f4ecd8;
-  color: #5b4636;
+  --reader-bg: #f4ecd8;
+  --reader-surface: #faf6eb;
+  --reader-text: #5b4636;
+  --reader-text-secondary: #8b7355;
 }
 
-/* 顶部控制栏 */
+/* ═══════════════════════════════════════════════════════════
+   顶部控制栏
+   ═══════════════════════════════════════════════════════════ */
+
 .reader-header {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  height: 50px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  display: flex;
-  align-items: center;
-  padding: 0 15px;
-  z-index: 100;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: var(--z-sticky);
+  background: var(--reader-surface);
+  border-bottom: 1px solid var(--color-border);
+  height: var(--header-height);
+  backdrop-filter: blur(8px);
 }
 
-.theme-dark .reader-header {
-  background: rgba(30, 30, 30, 0.95);
-}
-
-.btn-back {
-  padding: 8px 15px;
-  background: transparent;
-  border: none;
-  color: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  border-radius: 6px;
-}
-
-.btn-back:hover {
-  background: rgba(0, 0, 0, 0.1);
+.reader-header .container {
+  height: 100%;
 }
 
 .reader-title {
-  flex: 1;
-  text-align: center;
-  font-size: 16px;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--reader-text);
   margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 60%;
 }
 
-.btn-menu {
-  padding: 8px 15px;
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
-  font-size: 20px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-lg);
+  color: var(--reader-text);
   cursor: pointer;
-  border-radius: 6px;
+  transition: background var(--duration-150) var(--ease-in-out);
 }
 
-/* 阅读区域 */
+.btn-icon:hover {
+  background: var(--color-neutral-100);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   阅读区域
+   ═══════════════════════════════════════════════════════════ */
+
 .reader-content {
-  flex: 1;
+  min-height: calc(100vh - var(--header-height) - var(--space-16));
   overflow-y: auto;
-  padding: 60px 20px 80px;
+  -webkit-overflow-scrolling: touch;
 }
 
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-24);
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--color-neutral-200);
+  border-top-color: var(--color-primary-500);
+  border-radius: var(--radius-full);
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  margin-top: var(--space-4);
+  font-size: var(--text-base);
+  color: var(--reader-text-secondary);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 错误状态 */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-24);
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: var(--space-4);
+}
+
+.error-message {
+  font-size: var(--text-base);
+  color: var(--color-danger);
+  margin-bottom: var(--space-6);
+}
+
+/* 章节内容 */
 .chapter-container {
-  max-width: 800px;
+  max-width: var(--container-md);
   margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
 }
 
 .chapter-title {
-  font-size: 24px;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--reader-text);
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: var(--space-8);
+  line-height: var(--leading-tight);
 }
 
 .chapter-content {
+  color: var(--reader-text);
   text-align: justify;
-  margin-bottom: 40px;
+}
+
+.chapter-content :deep(p) {
+  margin-bottom: var(--space-4);
+  text-indent: 2em;
+}
+
+.chapter-content :deep(img) {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: var(--space-4) auto;
+  border-radius: var(--radius-md);
 }
 
 /* 章节导航 */
 .chapter-nav {
   display: flex;
   justify-content: space-between;
-  gap: 20px;
-  margin-top: 40px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  gap: var(--space-4);
+  margin-top: var(--space-12);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
 }
 
-.btn-chapter {
-  flex: 1;
-  padding: 12px 20px;
-  background: #2196F3;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-}
+/* ═══════════════════════════════════════════════════════════
+   底部进度条
+   ═══════════════════════════════════════════════════════════ */
 
-.btn-chapter:hover {
-  background: #1976D2;
-}
-
-.btn-chapter:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-/* 底部进度条 */
 .reader-footer {
-  position: fixed;
+  position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
-  height: 50px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  z-index: var(--z-sticky);
+  background: var(--reader-surface);
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-4);
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  z-index: 100;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.theme-dark .reader-footer {
-  background: rgba(30, 30, 30, 0.95);
+  gap: var(--space-3);
 }
 
 .progress-text {
-  font-size: 12px;
-  color: #999;
-  min-width: 80px;
+  color: var(--reader-text-secondary);
+  min-width: 60px;
+  font-variant-numeric: tabular-nums;
 }
 
 .progress-slider {
   flex: 1;
-  margin: 0 15px;
+  height: 4px;
+  background: var(--color-neutral-200);
+  border-radius: var(--radius-full);
+  appearance: none;
+  cursor: pointer;
 }
 
-/* 设置菜单 */
+.progress-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary-500);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: transform var(--duration-150) var(--ease-in-out);
+}
+
+.progress-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   设置菜单
+   ═══════════════════════════════════════════════════════════ */
+
 .menu-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  z-index: 200;
+  z-index: var(--z-modal);
+  padding: var(--space-4);
+  backdrop-filter: blur(4px);
 }
 
 .menu-content {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  width: 90%;
-  max-width: 400px;
+  background: var(--reader-surface);
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-2xl);
 }
 
-.theme-dark .menu-content {
-  background: #2a2a2a;
+.menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .menu-title {
-  margin: 0 0 20px;
-  font-size: 18px;
-  text-align: center;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--reader-text);
+  margin: 0;
 }
 
-.menu-item {
-  margin-bottom: 20px;
+.menu-body {
+  padding: var(--space-6);
+  overflow-y: auto;
 }
 
-.menu-item label {
+.menu-section {
+  margin-bottom: var(--space-6);
+}
+
+.menu-section:last-child {
+  margin-bottom: 0;
+}
+
+.menu-label {
   display: block;
-  margin-bottom: 10px;
-  font-size: 14px;
-  color: #666;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--reader-text-secondary);
+  margin-bottom: var(--space-3);
 }
 
+/* 字体大小按钮 */
 .size-buttons {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
 }
 
 .size-btn {
-  flex: 1;
-  padding: 8px;
-  border: 2px solid #ddd;
-  background: white;
-  border-radius: 6px;
+  padding: var(--space-3);
+  background: var(--color-neutral-100);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--reader-text);
   cursor: pointer;
+  transition: all var(--duration-200) var(--ease-in-out);
+}
+
+.size-btn:hover {
+  background: var(--color-neutral-200);
 }
 
 .size-btn.active {
-  border-color: #2196F3;
-  background: #E3F2FD;
+  background: var(--color-primary-500);
+  color: white;
+  border-color: var(--color-primary-500);
 }
 
+/* 主题按钮 */
 .theme-buttons {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
 }
 
 .theme-btn {
-  flex: 1;
-  padding: 8px;
-  border: 2px solid #ddd;
-  background: white;
-  border-radius: 6px;
+  padding: var(--space-3);
+  background: var(--color-neutral-100);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--reader-text);
   cursor: pointer;
+  transition: all var(--duration-200) var(--ease-in-out);
+}
+
+.theme-btn:hover {
+  background: var(--color-neutral-200);
 }
 
 .theme-btn.active {
-  border-color: #2196F3;
-  background: #E3F2FD;
+  background: var(--color-primary-100);
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-700);
 }
 
+/* 行间距选择器 */
 .line-height-select {
   width: 100%;
-  padding: 8px;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.btn-chapters {
-  width: 100%;
-  padding: 10px;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: var(--space-3);
+  background: var(--color-neutral-100);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-base);
+  color: var(--reader-text);
   cursor: pointer;
 }
 
-/* 目录面板 */
+/* ═══════════════════════════════════════════════════════════
+   目录面板
+   ═══════════════════════════════════════════════════════════ */
+
 .chapter-list-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: var(--z-modal);
+  padding: var(--space-4);
+  backdrop-filter: blur(4px);
 }
 
 .chapter-list-panel {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 300px;
-  background: white;
+  background: var(--reader-surface);
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  width: 100%;
+  max-width: 640px;
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
-}
-
-.theme-dark .chapter-list-panel {
-  background: #2a2a2a;
+  box-shadow: var(--shadow-2xl);
 }
 
 .chapter-list-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .chapter-list-header h3 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--reader-text);
   margin: 0;
-  font-size: 18px;
-}
-
-.btn-close {
-  padding: 5px 10px;
-  background: transparent;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
 }
 
 .chapter-list-content {
-  flex: 1;
+  padding: var(--space-4) var(--space-6);
   overflow-y: auto;
-  padding: 10px;
+  max-height: 60vh;
 }
 
 .chapter-item {
-  padding: 12px 15px;
-  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
   cursor: pointer;
-  font-size: 14px;
+  transition: background var(--duration-150) var(--ease-in-out);
+}
+
+.chapter-item:last-child {
+  border-bottom: none;
 }
 
 .chapter-item:hover {
-  background: #f5f5f5;
+  background: var(--color-neutral-50);
 }
 
 .chapter-item.active {
-  background: #E3F2FD;
-  color: #1976D2;
+  background: var(--color-primary-50);
 }
 
-/* 动画 */
+.chapter-number {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--reader-text-secondary);
+  min-width: 40px;
+}
+
+.chapter-name {
+  flex: 1;
+  font-size: var(--text-base);
+  color: var(--reader-text);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   动画
+   ═══════════════════════════════════════════════════════════ */
+
 .slide-down-enter-active,
 .slide-down-leave-active,
 .slide-up-enter-active,
 .slide-up-leave-active {
-  transition: transform 0.3s;
+  transition: all var(--duration-300) var(--ease-in-out);
 }
 
 .slide-down-enter-from,
 .slide-down-leave-to {
   transform: translateY(-100%);
+  opacity: 0;
 }
 
 .slide-up-enter-from,
 .slide-up-leave-to {
   transform: translateY(100%);
+  opacity: 0;
 }
 
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s;
+  transition: opacity var(--duration-300) var(--ease-in-out);
 }
 
 .fade-enter-from,
@@ -810,42 +945,55 @@ function handleKeydown(event: KeyboardEvent) {
 
 .slide-left-enter-active,
 .slide-left-leave-active {
-  transition: transform 0.3s;
+  transition: all var(--duration-300) var(--ease-out);
 }
 
-.slide-left-enter-from,
+.slide-left-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
 .slide-left-leave-to {
   transform: translateX(100%);
+  opacity: 0;
 }
 
-/* 加载和错误 */
-.loading-container,
-.error-container {
-  text-align: center;
-  padding: 60px 20px;
+/* ═══════════════════════════════════════════════════════════
+   响应式调整
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) {
+  .chapter-container {
+    padding: var(--space-8) var(--space-6);
+  }
+  
+  .chapter-title {
+    font-size: var(--text-3xl);
+  }
+  
+  .menu-overlay,
+  .chapter-list-overlay {
+    align-items: center;
+  }
+  
+  .menu-content,
+  .chapter-list-panel {
+    border-radius: var(--radius-2xl);
+    max-height: 70vh;
+  }
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #2196F3;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.btn-retry {
-  padding: 10px 20px;
-  background: #2196F3;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
+/* 减少动画 (无障碍) */
+@media (prefers-reduced-motion: reduce) {
+  .slide-down-enter-active,
+  .slide-down-leave-active,
+  .slide-up-enter-active,
+  .slide-up-leave-active,
+  .fade-enter-active,
+  .fade-leave-active,
+  .slide-left-enter-active,
+  .slide-left-leave-active {
+    transition: none;
+  }
 }
 </style>
