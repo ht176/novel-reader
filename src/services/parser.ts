@@ -70,7 +70,7 @@ export class FileParserService {
     let currentContent: string[] = [];
     
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+      const line = (lines[i] ?? '').trim();
       
       // 检测是否为章节标题
       if (this.chapterRegex.test(line)) {
@@ -302,7 +302,7 @@ export class FileParserService {
   private extractXmlTag(xml: string, tagName: string): string | null {
     const regex = new RegExp(`<${tagName}[^>]*>([^<]+)</${tagName}>`, 'i');
     const match = xml.match(regex);
-    return match ? match[1].trim() : null;
+    return match?.[1]?.trim() ?? null;
   }
 
   /**
@@ -315,7 +315,7 @@ export class FileParserService {
   private extractXmlAttribute(xml: string, attributeName: string): string | null {
     const regex = new RegExp(`${attributeName}="([^"]+)"`, 'i');
     const match = xml.match(regex);
-    return match ? match[1] : null;
+    return match?.[1] ?? null;
   }
 }
 

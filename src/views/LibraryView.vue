@@ -186,7 +186,7 @@ async function loadSources() {
   try {
     const sources = await db.sources
       .where('enabled')
-      .equals(true)
+      .equals(1)
       .toArray();
     enabledSources.value = sources.map(s => toRawObject(s));
     
@@ -246,7 +246,8 @@ async function search() {
       if (result.status === 'fulfilled') {
         allResults.push(...result.value);
       } else {
-        console.warn(`[LibraryView] 书源"${sources[index].name}"搜索失败:`, result.reason);
+        const sourceName = sources[index]?.name ?? '未知书源';
+        console.warn(`[LibraryView] 书源"${sourceName}"搜索失败:`, result.reason);
       }
     });
     
