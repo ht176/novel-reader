@@ -225,6 +225,7 @@ const book = await calibreService.downloadBook(bookId);
 - [x] 书城页面 (在线搜索)
 - [x] 设置页面
 - [x] 数据导出/导入
+- [x] 响应式设计优化
 
 ### v0.2
 - [ ] 主题切换
