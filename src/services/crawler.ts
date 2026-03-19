@@ -161,6 +161,7 @@ export class CrawlerService {
         if (!title || !url) return;
         
         chapters.push({
+          bookId: 0, // 临时值，保存时会被替换
           title,
           url: this.resolveUrl(url, source.baseUrl),
           order: index,

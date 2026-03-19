@@ -144,9 +144,12 @@
  */
 
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { db, type BookSource } from '@/db';
 import { crawler, type SearchResult } from '@/services/crawler';
 import { useBookStore } from '@/stores/books';
+
+const router = useRouter();
 
 // ============ 状态管理 ============
 const bookStore = useBookStore();
@@ -164,6 +167,11 @@ const selectedBook = ref<SearchResult | null>(null);
 // ============ 计算属性 ============
 const enabledSources = ref<BookSource[]>([]);
 
+// 添加 toRaw 辅助函数用于 Dexie 对象
+function toRawObject<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
+}
+
 // ============ 生命周期 ============
 onMounted(async () => {
   await loadSources();
@@ -180,7 +188,7 @@ async function loadSources() {
       .where('enabled')
       .equals(true)
       .toArray();
-    enabledSources.value = sources;
+    enabledSources.value = sources.map(s => toRawObject(s));
     
     if (sources.length === 0) {
       error.value = '暂无可用书源，请先在"书源管理"中添加书源';
@@ -302,7 +310,7 @@ async function addToLibrary(book: SearchResult) {
     );
     
     alert('✅ 已添加到书架！');
-    router.push('/');
+    router?.push('/');
     
   } catch (err) {
     alert(`❌ 添加失败：${err instanceof Error ? err.message : '未知错误'}`);

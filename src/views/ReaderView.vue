@@ -314,7 +314,8 @@ async function loadBook() {
  */
 async function loadChapter() {
   try {
-    currentChapter.value = chapters.value[currentChapterOrder.value];
+    const chapter = chapters.value[currentChapterOrder.value];
+    currentChapter.value = chapter || null;
     
     // 滚动到顶部
     if (contentRef.value) {

@@ -83,6 +83,7 @@ export class FileParserService {
         
         // 创建新章节
         currentChapter = {
+          bookId: 0, // 临时值，保存时会被替换
           title: line,
           order: chapters.length,
           wordCount: 0,
@@ -265,6 +266,7 @@ export class FileParserService {
         const title = titleMatch ? titleMatch[1].trim() : `第 ${i + 1} 章`;
         
         chapters.push({
+          bookId: 0, // 临时值，保存时会被替换
           title,
           url: path,
           content: content,
