@@ -1,196 +1,189 @@
 <template>
-  <div class="settings-view">
+  <main class="settings-view">
     <header class="settings-header">
-      <button class="btn-back" @click="$router.push('/')">
-        ← 返回
-      </button>
-      <h1 class="settings-title">⚙️ 设置</h1>
-      <div style="width: 60px;"></div>
+      <div class="container flex items-center justify-between">
+        <button class="btn-icon" @click="$router.push('/')" aria-label="返回">
+          ←
+        </button>
+        <h1 class="settings-title">⚙️ 设置</h1>
+        <div style="width: 40px;"></div>
+      </div>
     </header>
 
-    <div class="settings-content">
-      <!-- 阅读设置 -->
-      <section class="settings-section">
-        <h2 class="section-title">📖 阅读设置</h2>
-        
-        <div class="setting-item">
-          <label class="setting-label">默认字体大小</label>
-          <div class="button-group">
-            <button 
-              :class="['size-btn', { active: defaultFontSize === 14 }]"
-              @click="defaultFontSize = 14"
-            >
-              小
-            </button>
-            <button 
-              :class="['size-btn', { active: defaultFontSize === 16 }]"
-              @click="defaultFontSize = 16"
-            >
-              中
-            </button>
-            <button 
-              :class="['size-btn', { active: defaultFontSize === 18 }]"
-              @click="defaultFontSize = 18"
-            >
-              大
-            </button>
-            <button 
-              :class="['size-btn', { active: defaultFontSize === 20 }]"
-              @click="defaultFontSize = 20"
-            >
-              超大
-            </button>
+    <div class="container">
+      <div class="settings-content">
+        <!-- 阅读设置 -->
+        <section class="settings-section">
+          <h2 class="section-title">📖 阅读设置</h2>
+          
+          <div class="setting-item">
+            <label class="setting-label">默认字体大小</label>
+            <div class="button-group">
+              <button 
+                v-for="size in [14, 16, 18, 20]"
+                :key="size"
+                :class="['size-btn', { active: defaultFontSize === size }]"
+                @click="defaultFontSize = size"
+              >
+                {{ size === 14 ? '小' : size === 16 ? '中' : size === 18 ? '大' : '超大' }}
+              </button>
+            </div>
           </div>
-        </div>
-        
-        <div class="setting-item">
-          <label class="setting-label">默认主题</label>
-          <div class="button-group">
-            <button 
-              :class="['theme-btn', { active: defaultTheme === 'light' }]"
-              @click="defaultTheme = 'light'"
-            >
-              ☀️ 日间
-            </button>
-            <button 
-              :class="['theme-btn', { active: defaultTheme === 'dark' }]"
-              @click="defaultTheme = 'dark'"
-            >
-              🌙 夜间
-            </button>
-            <button 
-              :class="['theme-btn', { active: defaultTheme === 'sepia' }]"
-              @click="defaultTheme = 'sepia'"
-            >
-              📜 护眼
-            </button>
+          
+          <div class="setting-item">
+            <label class="setting-label">默认主题</label>
+            <div class="button-group">
+              <button 
+                :class="['theme-btn', { active: defaultTheme === 'light' }]"
+                @click="defaultTheme = 'light'"
+              >
+                ☀️ 日间
+              </button>
+              <button 
+                :class="['theme-btn', { active: defaultTheme === 'dark' }]"
+                @click="defaultTheme = 'dark'"
+              >
+                🌙 夜间
+              </button>
+              <button 
+                :class="['theme-btn', { active: defaultTheme === 'sepia' }]"
+                @click="defaultTheme = 'sepia'"
+              >
+                📜 护眼
+              </button>
+            </div>
           </div>
-        </div>
-        
-        <div class="setting-item">
-          <label class="setting-label">默认行间距</label>
-          <select v-model="defaultLineHeight" class="setting-select">
-            <option :value="1.5">紧凑 (1.5)</option>
-            <option :value="1.8">正常 (1.8)</option>
-            <option :value="2.2">宽松 (2.2)</option>
-            <option :value="2.6">超宽 (2.6)</option>
-          </select>
-        </div>
-      </section>
+          
+          <div class="setting-item">
+            <label class="setting-label">默认行间距</label>
+            <select v-model="defaultLineHeight" class="line-height-select">
+              <option value="1.5">紧凑</option>
+              <option value="1.8">正常</option>
+              <option value="2.2">宽松</option>
+              <option value="2.6">超宽</option>
+            </select>
+          </div>
+        </section>
 
-      <!-- 数据管理 -->
-      <section class="settings-section">
-        <h2 class="section-title">💾 数据管理</h2>
-        
-        <div class="setting-item">
-          <div class="setting-info">
-            <h3 class="info-title">书籍统计</h3>
-            <p class="info-desc">
-              总书籍：{{ stats.bookCount }} 本<br>
-              总章节：{{ stats.chapterCount }} 章<br>
-              书源数：{{ stats.sourceCount }} 个<br>
-              缓存大小：{{ formatSize(stats.cacheSize) }}
-            </p>
+        <!-- 数据管理 -->
+        <section class="settings-section">
+          <h2 class="section-title">💾 数据管理</h2>
+          
+          <div class="setting-item">
+            <label class="setting-label">备份数据</label>
+            <button @click="backupData" class="btn btn-primary">
+              📁 备份
+            </button>
           </div>
-        </div>
-        
-        <div class="setting-item">
-          <button @click="exportData" class="btn-setting">
-            📤 导出数据
-          </button>
-          <p class="setting-hint">导出书籍、书源等数据到文件</p>
-        </div>
-        
-        <div class="setting-item">
-          <button @click="importData" class="btn-setting">
-            📥 导入数据
-          </button>
-          <p class="setting-hint">从文件恢复数据</p>
-          <input 
-            ref="importInput"
-            type="file" 
-            accept=".json"
-            @change="handleImport"
-            style="display: none"
-          />
-        </div>
-        
-        <div class="setting-item">
-          <button @click="clearCache" class="btn-setting btn-warning">
-            🗑️ 清理缓存
-          </button>
-          <p class="setting-hint">清理过期缓存数据</p>
-        </div>
-        
-        <div class="setting-item">
-          <button @click="resetAll" class="btn-setting btn-danger">
-            ⚠️ 重置所有数据
-          </button>
-          <p class="setting-hint">删除所有书籍、书源和进度（不可恢复）</p>
-        </div>
-      </section>
+          
+          <div class="setting-item">
+            <label class="setting-label">恢复数据</label>
+            <input 
+              ref="restoreInput"
+              type="file" 
+              accept=".json"
+              @change="restoreData"
+              class="file-input-hidden"
+            />
+            <button @click="triggerRestore" class="btn btn-secondary">
+              📂 恢复
+            </button>
+          </div>
+          
+          <div class="setting-item">
+            <label class="setting-label">清除缓存</label>
+            <button @click="clearCache" class="btn btn-danger">
+              🗑️ 清除
+            </button>
+          </div>
+          
+          <div class="setting-item">
+            <label class="setting-label">清除所有数据</label>
+            <button @click="confirmClearAll" class="btn btn-danger">
+              🚨 全部清除
+            </button>
+          </div>
+        </section>
 
-      <!-- 关于 -->
-      <section class="settings-section">
-        <h2 class="section-title">ℹ️ 关于</h2>
-        
-        <div class="setting-item">
-          <div class="setting-info">
-            <h3 class="info-title">小说阅读器</h3>
-            <p class="info-desc">
-              版本：v0.1.0<br>
-              开发中 🚧<br>
-              <br>
-              一个基于 Vue 3 的跨平台小说阅读器
-            </p>
+        <!-- 书源管理 -->
+        <section class="settings-section">
+          <h2 class="section-title">🔗 书源管理</h2>
+          
+          <div class="setting-item">
+            <label class="setting-label">导入书源</label>
+            <input 
+              ref="importSourceInput"
+              type="file" 
+              accept=".json"
+              @change="importSources"
+              class="file-input-hidden"
+            />
+            <button @click="triggerImportSource" class="btn btn-primary">
+              📁 导入
+            </button>
           </div>
-        </div>
-        
-        <div class="setting-item">
-          <button @click="checkUpdate" class="btn-setting">
-            🔍 检查更新
-          </button>
-        </div>
-      </section>
+          
+          <div class="setting-item">
+            <label class="setting-label">导出书源</label>
+            <button @click="exportSources" class="btn btn-secondary">
+              📂 导出
+            </button>
+          </div>
+          
+          <div class="setting-item">
+            <label class="setting-label">重置默认书源</label>
+            <button @click="resetDefaultSources" class="btn btn-warning">
+              🔄 重置
+            </button>
+          </div>
+        </section>
+
+        <!-- 关于 -->
+        <section class="settings-section">
+          <h2 class="section-title">ℹ️ 关于</h2>
+          
+          <div class="about-info">
+            <p class="version-info">版本: {{ version }}</p>
+            <p class="author-info">开发者: 贾维斯 🤖</p>
+            <p class="license-info">许可证: MIT</p>
+          </div>
+        </section>
+      </div>
     </div>
-  </div>
+  </main>
 </template>
 
 <script setup lang="ts">
 /**
- * SettingsView - 设置页面
+ * SettingsView - 设置页面 (现代化版本)
  * 
  * 功能：
- * 1. 阅读偏好设置
- * 2. 数据导出/导入
- * 3. 缓存清理
- * 4. 应用信息
+ * 1. 阅读设置（字体、主题、行间距）
+ * 2. 数据管理（备份、恢复、清除）
+ * 3. 书源管理（导入、导出、重置）
+ * 4. 关于信息
  */
 
-import { ref, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { db } from '@/db';
 
-// ============ 状态 ============
-const defaultFontSize = ref(16);
+// ============ 状态管理 ============
+const router = useRouter();
+
+// ============ 本地状态 ============
+const defaultFontSize = ref<number>(16);
 const defaultTheme = ref<'light' | 'dark' | 'sepia'>('light');
-const defaultLineHeight = ref(1.8);
-const stats = ref({
-  bookCount: 0,
-  chapterCount: 0,
-  sourceCount: 0,
-  cacheSize: 0
-});
-const importInput = ref<HTMLInputElement | null>(null);
+const defaultLineHeight = ref<string>('1.8');
+const version = ref<string>('v0.1.0');
+
+// 文件输入引用
+const restoreInput = ref<HTMLInputElement | null>(null);
+const importSourceInput = ref<HTMLInputElement | null>(null);
 
 // ============ 生命周期 ============
-onMounted(async () => {
+onMounted(() => {
   loadSettings();
-  await loadStats();
-});
-
-// ============ 监听设置变化 ============
-watch([defaultFontSize, defaultTheme, defaultLineHeight], () => {
-  saveSettings();
 });
 
 // ============ 方法 ============
@@ -199,364 +192,550 @@ watch([defaultFontSize, defaultTheme, defaultLineHeight], () => {
  * 加载设置
  */
 function loadSettings() {
-  const saved = localStorage.getItem('novel-reader-settings');
-  if (saved) {
-    try {
-      const settings = JSON.parse(saved);
-      if (settings.fontSize) defaultFontSize.value = settings.fontSize;
-      if (settings.theme) defaultTheme.value = settings.theme;
-      if (settings.lineHeight) defaultLineHeight.value = settings.lineHeight;
-    } catch (err) {
-      console.error('[SettingsView] 加载设置失败:', err);
-    }
-  }
+  // 从 localStorage 加载设置
+  const savedFontSize = localStorage.getItem('reader-fontSize');
+  const savedTheme = localStorage.getItem('reader-theme');
+  const savedLineHeight = localStorage.getItem('reader-lineHeight');
+  
+  if (savedFontSize) defaultFontSize.value = parseInt(savedFontSize);
+  if (savedTheme) defaultTheme.value = savedTheme as any;
+  if (savedLineHeight) defaultLineHeight.value = savedLineHeight;
 }
 
 /**
  * 保存设置
  */
 function saveSettings() {
-  localStorage.setItem('novel-reader-settings', JSON.stringify({
-    fontSize: defaultFontSize.value,
-    theme: defaultTheme.value,
-    lineHeight: defaultLineHeight.value
-  }));
-  console.log('[SettingsView] 设置已保存');
+  localStorage.setItem('reader-fontSize', String(defaultFontSize.value));
+  localStorage.setItem('reader-theme', defaultTheme.value);
+  localStorage.setItem('reader-lineHeight', defaultLineHeight.value);
 }
 
 /**
- * 加载统计数据
+ * 备份数据
  */
-async function loadStats() {
+async function backupData() {
   try {
-    const dbStats = await db.getStats();
-    stats.value = dbStats;
-  } catch (err) {
-    console.error('[SettingsView] 加载统计失败:', err);
-  }
-}
-
-/**
- * 导出数据
- */
-async function exportData() {
-  try {
-    const data = {
-      version: '1.0',
-      exportDate: Date.now(),
+    // 导出所有数据
+    const backupData = {
+      timestamp: Date.now(),
       books: await db.books.toArray(),
+      chapters: await db.chapters.toArray(),
+      progress: await db.progress.toArray(),
       sources: await db.sources.toArray(),
-      progress: await db.progress.toArray()
+      cache: await db.cache.toArray()
     };
     
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    // 创建下载链接
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `novel-reader-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `novel-reader-backup-${Date.now()}.json`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    alert('✅ 数据导出成功');
-  } catch (err) {
-    console.error('[SettingsView] 导出数据失败:', err);
-    alert('❌ 导出失败');
+    alert('✅ 数据备份成功！');
+  } catch (error) {
+    alert(`❌ 备份失败: ${(error as Error).message}`);
+    console.error('[SettingsView] 备份失败:', error);
   }
 }
 
 /**
- * 导入数据
+ * 恢复数据
  */
-function importData() {
-  importInput.value?.click();
-}
-
-/**
- * 处理导入文件
- * 
- * @param event - 文件选择事件
- */
-async function handleImport(event: Event) {
+async function restoreData(event: Event) {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   
   if (!file) return;
   
-  if (!confirm('导入数据将覆盖现有数据，确定继续吗？')) {
-    target.value = '';
+  try {
+    const content = await file.text();
+    const data = JSON.parse(content);
+    
+    // 确认恢复
+    if (!confirm(`确定要恢复数据吗？\n\n这将覆盖当前所有数据！`)) {
+      return;
+    }
+    
+    // 清除当前数据
+    await db.transaction('rw', [
+      db.books, db.chapters, db.progress, db.sources, db.cache
+    ], async (tx) => {
+      await Promise.all([
+        db.books.clear(),
+        db.chapters.clear(),
+        db.progress.clear(),
+        db.sources.clear(),
+        db.cache.clear()
+      ]);
+      
+      // 恢复数据
+      if (data.books) await db.books.bulkPut(data.books);
+      if (data.chapters) await db.chapters.bulkPut(data.chapters);
+      if (data.progress) await db.progress.bulkPut(data.progress);
+      if (data.sources) await db.sources.bulkPut(data.sources);
+      if (data.cache) await db.cache.bulkPut(data.cache);
+    });
+    
+    alert('✅ 数据恢复成功！请刷新页面。');
+    location.reload();
+  } catch (error) {
+    alert(`❌ 恢复失败: ${(error as Error).message}`);
+    console.error('[SettingsView] 恢复失败:', error);
+  } finally {
+    // 重置文件输入
+    if (target) {
+      target.value = '';
+    }
+  }
+}
+
+/**
+ * 触发恢复数据输入
+ */
+function triggerRestore() {
+  if (restoreInput.value) {
+    restoreInput.value.click();
+  }
+}
+
+/**
+ * 清除缓存
+ */
+async function clearCache() {
+  try {
+    await db.cache.clear();
+    alert('✅ 缓存清除成功！');
+  } catch (error) {
+    alert(`❌ 清除失败: ${(error as Error).message}`);
+    console.error('[SettingsView] 清除缓存失败:', error);
+  }
+}
+
+/**
+ * 确认清空所有数据
+ */
+function confirmClearAll() {
+  if (confirm('⚠️ 警告！\n\n您即将清空所有数据（书籍、章节、进度、书源等）。\n\n此操作不可逆，确定要继续吗？')) {
+    clearAllData();
+  }
+}
+
+/**
+ * 清空所有数据
+ */
+async function clearAllData() {
+  try {
+    await db.transaction('rw', [
+      db.books, db.chapters, db.progress, db.sources, db.cache
+    ], async (tx) => {
+      await Promise.all([
+        db.books.clear(),
+        db.chapters.clear(),
+        db.progress.clear(),
+        db.sources.clear(),
+        db.cache.clear()
+      ]);
+    });
+    
+    alert('✅ 所有数据已清除！');
+    // 返回首页
+    router.push('/');
+  } catch (error) {
+    alert(`❌ 清除失败: ${(error as Error).message}`);
+    console.error('[SettingsView] 清除所有数据失败:', error);
+  }
+}
+
+/**
+ * 导入书源
+ */
+async function importSources(event: Event) {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  
+  if (!file) return;
+  
+  try {
+    const content = await file.text();
+    const sources = JSON.parse(content);
+    
+    if (!Array.isArray(sources)) {
+      throw new Error('书源格式错误');
+    }
+    
+    // 确认导入
+    if (!confirm(`确定要导入 ${sources.length} 个书源吗？`)) {
+      return;
+    }
+    
+    // 导入书源
+    await db.sources.bulkPut(sources);
+    
+    alert('✅ 书源导入成功！');
+  } catch (error) {
+    alert(`❌ 导入失败: ${(error as Error).message}`);
+    console.error('[SettingsView] 导入书源失败:', error);
+  } finally {
+    // 重置文件输入
+    if (target) {
+      target.value = '';
+    }
+  }
+}
+
+/**
+ * 触发导入书源输入
+ */
+function triggerImportSource() {
+  if (importSourceInput.value) {
+    importSourceInput.value.click();
+  }
+}
+
+/**
+ * 导出书源
+ */
+async function exportSources() {
+  try {
+    const sources = await db.sources.toArray();
+    
+    if (sources.length === 0) {
+      alert('❌ 暂无书源可导出');
+      return;
+    }
+    
+    const blob = new Blob([JSON.stringify(sources, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `novel-reader-sources-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    alert('✅ 书源导出成功！');
+  } catch (error) {
+    alert(`❌ 导出失败: ${(error as Error).message}`);
+    console.error('[SettingsView] 导出书源失败:', error);
+  }
+}
+
+/**
+ * 重置默认书源
+ */
+async function resetDefaultSources() {
+  if (!confirm('确定要重置为默认书源吗？\n\n这将删除所有自定义书源。')) {
     return;
   }
   
   try {
-    const text = await file.text();
-    const data = JSON.parse(text);
-    
-    if (!data.version || !data.books) {
-      throw new Error('无效的备份文件');
-    }
-    
-    // 清空现有数据
-    await db.books.clear();
+    // 清除所有书源
     await db.sources.clear();
-    await db.progress.clear();
     
-    // 导入新数据
-    if (data.books.length > 0) {
-      await db.books.bulkAdd(data.books);
-    }
-    if (data.sources.length > 0) {
-      await db.sources.bulkAdd(data.sources);
-    }
-    if (data.progress.length > 0) {
-      await db.progress.bulkAdd(data.progress);
-    }
+    // 添加默认书源
+    const defaultSources = [
+      {
+        name: '示例书源',
+        baseUrl: 'https://example.com',
+        searchUrl: 'https://example.com/search?q={keyword}',
+        detailUrl: 'https://example.com/book/{id}',
+        chapterUrl: 'https://example.com/book/{id}/chapters',
+        contentUrl: 'https://example.com/chapter/{id}',
+        selectors: {
+          searchResults: '.book-item',
+          bookTitle: '.book-title',
+          bookAuthor: '.book-author',
+          bookCover: '.book-cover img',
+          bookUrl: 'a.book-link',
+          chapters: '.chapter-list li',
+          chapterTitle: '.chapter-title',
+          chapterUrl: '.chapter-link',
+          content: '.chapter-content'
+        },
+        enabled: false,
+        createdAt: Date.now()
+      }
+    ];
     
-    alert('✅ 数据导入成功');
-    await loadStats();
-    target.value = '';
-  } catch (err) {
-    console.error('[SettingsView] 导入数据失败:', err);
-    alert(`❌ 导入失败：${err instanceof Error ? err.message : '未知错误'}`);
-    target.value = '';
+    await db.sources.bulkAdd(defaultSources);
+    
+    alert('✅ 默认书源重置成功！');
+  } catch (error) {
+    alert(`❌ 重置失败: ${(error as Error).message}`);
+    console.error('[SettingsView] 重置默认书源失败:', error);
   }
 }
 
-/**
- * 清理缓存
- */
-async function clearCache() {
-  if (!confirm('确定要清理缓存吗？')) return;
-  
-  try {
-    await db.cleanExpiredCache();
-    await db.cache.clear();
-    alert('✅ 缓存已清理');
-    await loadStats();
-  } catch (err) {
-    console.error('[SettingsView] 清理缓存失败:', err);
-    alert('❌ 清理失败');
-  }
-}
-
-/**
- * 重置所有数据
- */
-async function resetAll() {
-  if (!confirm('⚠️ 警告：此操作将删除所有数据且不可恢复！\n\n确定要继续吗？')) return;
-  if (!confirm('再次确认：所有书籍、书源和进度都将被删除！')) return;
-  
-  try {
-    await db.books.clear();
-    await db.sources.clear();
-    await db.chapters.clear();
-    await db.progress.clear();
-    await db.cache.clear();
-    
-    alert('✅ 已重置所有数据');
-    await loadStats();
-  } catch (err) {
-    console.error('[SettingsView] 重置数据失败:', err);
-    alert('❌ 重置失败');
-  }
-}
-
-/**
- * 检查更新
- */
-function checkUpdate() {
-  alert('当前已是最新版本 (v0.1.0)\n\n更多功能开发中... 🚧');
-}
-
-/**
- * 格式化文件大小
- * 
- * @param bytes - 字节数
- * @returns 格式化后的大小
- */
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-}
+// 监听设置变化并保存
+watch([defaultFontSize, defaultTheme, defaultLineHeight], saveSettings);
 </script>
 
 <style scoped>
-/**
- * 设置页面样式
- */
+@import '@/assets/design-tokens.css';
+
+/* ═══════════════════════════════════════════════════════════
+   设置页面布局
+   ═══════════════════════════════════════════════════════════ */
 
 .settings-view {
   min-height: 100vh;
-  background: #f5f5f5;
-  padding: 20px;
+  background: var(--color-bg);
+  padding-bottom: var(--space-4);
 }
 
-/* 顶部导航 */
+/* ═══════════════════════════════════════════════════════════
+   顶部导航
+   ═══════════════════════════════════════════════════════════ */
+
 .settings-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  height: var(--header-height);
+  backdrop-filter: blur(8px);
 }
 
-.btn-back {
-  padding: 8px 15px;
-  background: transparent;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.btn-back:hover {
-  background: #f0f0f0;
+.settings-header .container {
+  height: 100%;
 }
 
 .settings-title {
-  font-size: 20px;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
-/* 设置内容 */
+/* ═══════════════════════════════════════════════════════════
+   设置内容区
+   ═══════════════════════════════════════════════════════════ */
+
 .settings-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  max-width: 800px;
+  margin: var(--space-4) auto;
+  padding: var(--space-4);
 }
 
-/* 设置区块 */
+/* ═══════════════════════════════════════════════════════════
+   设置区域
+   ═══════════════════════════════════════════════════════════ */
+
 .settings-section {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-6);
+  overflow: hidden;
 }
 
 .section-title {
-  font-size: 18px;
-  margin: 0 0 20px;
-  color: #333;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #f0f0f0;
+  padding: var(--space-4) var(--space-6);
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  background: var(--color-surface-secondary);
+  border-bottom: 1px solid var(--color-border);
 }
 
-/* 设置项 */
+/* ═══════════════════════════════════════════════════════════
+   设置项
+   ═══════════════════════════════════════════════════════════ */
+
 .setting-item {
-  margin-bottom: 20px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  gap: var(--space-4);
 }
 
 .setting-item:last-child {
-  margin-bottom: 0;
-  padding-bottom: 0;
   border-bottom: none;
 }
 
 .setting-label {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 14px;
-  color: #555;
-  font-weight: 500;
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  font-weight: var(--font-medium);
+  flex: 1;
 }
 
 /* 按钮组 */
 .button-group {
   display: flex;
-  gap: 10px;
+  gap: var(--space-2);
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .size-btn,
 .theme-btn {
-  padding: 8px 16px;
-  border: 2px solid #ddd;
-  background: white;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-neutral-100);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
   cursor: pointer;
+  transition: all var(--duration-200) var(--ease-in-out);
+  min-width: 60px;
+  text-align: center;
+}
+
+.size-btn:hover,
+.theme-btn:hover {
+  background: var(--color-neutral-200);
 }
 
 .size-btn.active,
 .theme-btn.active {
-  border-color: #2196F3;
-  background: #E3F2FD;
-}
-
-/* 选择器 */
-.setting-select {
-  width: 100%;
-  max-width: 200px;
-  padding: 8px 12px;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-/* 设置信息 */
-.setting-info {
-  background: #f9f9f9;
-  padding: 15px;
-  border-radius: 8px;
-}
-
-.info-title {
-  font-size: 16px;
-  margin: 0 0 10px;
-  color: #333;
-}
-
-.info-desc {
-  font-size: 14px;
-  color: #666;
-  line-height: 1.8;
-  margin: 0;
-}
-
-/* 设置按钮 */
-.btn-setting {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  background: #2196F3;
+  background: var(--color-primary-500);
   color: white;
-  margin-bottom: 8px;
+  border-color: var(--color-primary-500);
 }
 
-.btn-setting:hover {
-  opacity: 0.9;
+/* 行间距选择器 */
+.line-height-select {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-neutral-100);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  cursor: pointer;
+  min-width: 120px;
 }
 
-.btn-warning {
-  background: #FF9800;
+/* ═══════════════════════════════════════════════════════════
+   按钮样式
+   ═══════════════════════════════════════════════════════════ */
+
+.btn {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  border: none;
+  transition: all var(--duration-200) var(--ease-in-out);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-primary-500);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-600);
+}
+
+.btn-secondary {
+  background: var(--color-neutral-100);
+  color: var(--color-text-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--color-neutral-200);
 }
 
 .btn-danger {
-  background: #f44336;
+  background: var(--color-danger);
+  color: white;
 }
 
-.setting-hint {
-  font-size: 12px;
-  color: #999;
+.btn-danger:hover {
+  background: #d32f2f;
+}
+
+.btn-warning {
+  background: var(--color-warning);
+  color: white;
+}
+
+.btn-warning:hover {
+  background: #f57c00;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   关于信息
+   ═══════════════════════════════════════════════════════════ */
+
+.about-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+
+.version-info,
+.author-info,
+.license-info {
   margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
-/* 移动端适配 */
+/* ═══════════════════════════════════════════════════════════
+   隐藏文件输入
+   ═══════════════════════════════════════════════════════════ */
+
+.file-input-hidden {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   响应式调整
+   ═══════════════════════════════════════════════════════════ */
+
 @media (max-width: 768px) {
-  .settings-view {
-    padding: 15px;
+  .setting-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+  
+  .setting-label {
+    text-align: left;
   }
   
   .button-group {
-    flex-direction: column;
+    justify-content: stretch;
   }
   
   .size-btn,
   .theme-btn {
-    width: 100%;
+    flex: 1;
+  }
+  
+  .settings-content {
+    padding: var(--space-2);
+  }
+}
+
+/* 减少动画 (无障碍) */
+@media (prefers-reduced-motion: reduce) {
+  .settings-section,
+  .size-btn,
+  .theme-btn,
+  .btn {
+    transition: none;
   }
 }
 </style>

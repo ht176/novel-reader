@@ -1,461 +1,418 @@
 <template>
-  <div class="source-view">
+  <main class="source-view">
     <!-- 顶部导航 -->
     <header class="source-header">
-      <button class="btn-back" @click="$router.push('/')">
-        ← 返回
-      </button>
-      <h1 class="source-title">📡 书源管理</h1>
-      <button @click="showAddDialog = true" class="btn-add-source">
-        + 添加书源
-      </button>
+      <div class="container flex items-center justify-between">
+        <button class="btn-icon" @click="$router.push('/')" aria-label="返回">
+          ←
+        </button>
+        <h1 class="source-title">📡 书源管理</h1>
+        <button 
+          @click="showAddDialog = true" 
+          class="btn btn-primary"
+          aria-label="添加书源"
+        >
+          + 添加书源
+        </button>
+      </div>
     </header>
 
     <!-- 书源列表 -->
-    <div class="source-list">
-      <div 
-        v-for="source in sources" 
-        :key="source.id"
-        class="source-item"
-        :class="{ disabled: !source.enabled }"
-      >
-        <div class="source-info">
-          <h3 class="source-name">{{ source.name }}</h3>
-          <p class="source-url">{{ source.baseUrl }}</p>
-          <div class="source-meta">
-            <span class="status-tag" :class="{ active: source.enabled }">
-              {{ source.enabled ? '✓ 启用' : '✗ 禁用' }}
-            </span>
-            <span class="create-time">
-              添加于 {{ formatDate(source.createdAt) }}
-            </span>
+    <div class="container">
+      <div class="source-list">
+        <div 
+          v-for="source in sources" 
+          :key="source.id"
+          class="source-item"
+          :class="{ disabled: !source.enabled }"
+        >
+          <div class="source-info">
+            <h3 class="source-name">{{ source.name }}</h3>
+            <p class="source-url truncate">{{ source.baseUrl }}</p>
+            <div class="source-meta flex items-center gap-3">
+              <span class="status-badge" :class="{ active: source.enabled }">
+                {{ source.enabled ? '✓ 启用' : '✗ 禁用' }}
+              </span>
+              <span class="create-time text-sm text-secondary">
+                {{ formatDate(source.createdAt) }}
+              </span>
+            </div>
+          </div>
+          <div class="source-actions flex gap-2">
+            <button 
+              @click="toggleSource(source)" 
+              class="btn"
+              :class="source.enabled ? 'btn-outline' : 'btn-primary'"
+              :aria-label="source.enabled ? '禁用书源' : '启用书源'"
+            >
+              {{ source.enabled ? '禁用' : '启用' }}
+            </button>
+            <button @click="editSource(source)" class="btn btn-outline">
+              编辑
+            </button>
+            <button @click="testSource(source)" class="btn btn-outline">
+              测试
+            </button>
+            <button @click="deleteSource(source)" class="btn btn-danger">
+              删除
+            </button>
           </div>
         </div>
-        <div class="source-actions">
-          <button 
-            @click="toggleSource(source)" 
-            class="btn-action"
-            :class="source.enabled ? 'btn-disable' : 'btn-enable'"
-          >
-            {{ source.enabled ? '禁用' : '启用' }}
-          </button>
-          <button @click="editSource(source)" class="btn-action btn-edit">
-            编辑
-          </button>
-          <button @click="testSource(source)" class="btn-action btn-test">
-            测试
-          </button>
-          <button @click="deleteSource(source)" class="btn-action btn-delete">
-            删除
+
+        <!-- 空状态 -->
+        <div v-if="sources.length === 0" class="empty-state">
+          <div class="empty-icon">📡</div>
+          <h3 class="empty-title">暂无书源</h3>
+          <p class="empty-text">点击右上角添加按钮添加书源</p>
+          <button @click="showAddDialog = true" class="btn btn-primary">
+            + 添加第一个书源
           </button>
         </div>
       </div>
     </div>
 
-    <!-- 空状态 -->
-    <div v-if="sources.length === 0" class="empty-state">
-      <div class="empty-icon">📡</div>
-      <h2 class="empty-title">暂无书源</h2>
-      <p class="empty-text">点击"添加书源"创建第一个书源</p>
-      <button @click="showAddDialog = true" class="btn-primary">
-        + 添加书源
-      </button>
-    </div>
+    <!-- 添加/编辑书源对话框 -->
+    <teleport to="body">
+      <transition name="fade">
+        <div v-if="showAddDialog" class="dialog-overlay" @click="closeDialog">
+          <div class="dialog-content animate-slide-up" @click.stop>
+            <header class="dialog-header">
+              <h2 class="dialog-title">
+                {{ editingSource ? '编辑书源' : '添加书源' }}
+              </h2>
+              <button class="btn-icon" @click="closeDialog" aria-label="关闭">
+                ✕
+              </button>
+            </header>
+            <form class="dialog-body" @submit.prevent="saveSource">
+              <div class="form-group">
+                <label class="form-label">书源名称 *</label>
+                <input 
+                  v-model="formData.name" 
+                  type="text" 
+                  class="form-input"
+                  placeholder="例如：起点中文网"
+                  required
+                />
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">基础URL *</label>
+                <input 
+                  v-model="formData.baseUrl" 
+                  type="url" 
+                  class="form-input"
+                  placeholder="例如：https://www.qidian.com"
+                  required
+                />
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">搜索URL模板 *</label>
+                <input 
+                  v-model="formData.searchUrl" 
+                  type="text" 
+                  class="form-input"
+                  placeholder="例如：https://www.qidian.com/search?q={keyword}"
+                  required
+                />
+                <p class="form-hint">使用 {keyword} 作为关键词占位符</p>
+              </div>
 
-    <!-- 添加/编辑对话框 -->
-    <div v-if="showAddDialog || showEditDialog" class="dialog-overlay" @click="closeDialog">
-      <div class="dialog" @click.stop>
-        <h2 class="dialog-title">{{ showEditDialog ? '编辑书源' : '添加书源' }}</h2>
-        
-        <div class="dialog-content">
-          <!-- 基本信息 -->
-          <div class="form-group">
-            <label>书源名称 *</label>
-            <input 
-              v-model="formData.name"
-              type="text"
-              placeholder="例如：起点中文网"
-              class="form-input"
-            />
-          </div>
-          
-          <div class="form-group">
-            <label>基础 URL *</label>
-            <input 
-              v-model="formData.baseUrl"
-              type="url"
-              placeholder="https://example.com"
-              class="form-input"
-            />
-          </div>
-          
-          <div class="form-group">
-            <label>搜索 URL 模板 *</label>
-            <input 
-              v-model="formData.searchUrl"
-              type="text"
-              placeholder="https://example.com/search?q={keyword}"
-              class="form-input"
-            />
-            <p class="form-hint">使用 {'{keyword}'} 作为搜索关键词占位符</p>
-          </div>
-          
-          <div class="form-group">
-            <label>书籍详情 URL 模板</label>
-            <input 
-              v-model="formData.detailUrl"
-              type="text"
-              placeholder="https://example.com/book/{id}"
-              class="form-input"
-            />
-            <p class="form-hint">使用 {'{id}'} 作为书籍 ID 占位符</p>
-          </div>
-          
-          <div class="form-group">
-            <label>章节列表 URL 模板</label>
-            <input 
-              v-model="formData.chapterUrl"
-              type="text"
-              placeholder="https://example.com/book/{id}/chapters"
-              class="form-input"
-            />
-          </div>
-          
-          <div class="form-group">
-            <label>章节内容 URL 模板</label>
-            <input 
-              v-model="formData.contentUrl"
-              type="text"
-              placeholder="https://example.com/chapter/{id}"
-              class="form-input"
-            />
-          </div>
-          
-          <!-- 选择器配置 -->
-          <div class="form-section">
-            <h3 class="section-title">HTML 选择器配置</h3>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label>搜索结果列表</label>
-                <input 
-                  v-model="formData.selectors.searchResults"
-                  type="text"
-                  placeholder=".book-item"
-                  class="form-input"
-                />
+              <!-- 选择器配置 -->
+              <div class="form-section">
+                <h3 class="form-section-title">选择器配置</h3>
+                
+                <div class="form-group">
+                  <label class="form-label">搜索结果列表</label>
+                  <input 
+                    v-model="formData.selectors.searchResults" 
+                    type="text" 
+                    class="form-input"
+                    placeholder="例如：.book-list .book-item"
+                  />
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">书名选择器</label>
+                  <input 
+                    v-model="formData.selectors.bookTitle" 
+                    type="text" 
+                    class="form-input"
+                    placeholder="例如：.book-title"
+                  />
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">作者选择器</label>
+                  <input 
+                    v-model="formData.selectors.bookAuthor" 
+                    type="text" 
+                    class="form-input"
+                    placeholder="例如：.book-author"
+                  />
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">封面选择器</label>
+                  <input 
+                    v-model="formData.selectors.bookCover" 
+                    type="text" 
+                    class="form-input"
+                    placeholder="例如：.book-cover img"
+                  />
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">详情页URL选择器</label>
+                  <input 
+                    v-model="formData.selectors.bookUrl" 
+                    type="text" 
+                    class="form-input"
+                    placeholder="例如：a.book-link"
+                  />
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">章节列表选择器</label>
+                  <input 
+                    v-model="formData.selectors.chapters" 
+                    type="text" 
+                    class="form-input"
+                    placeholder="例如：.chapter-list li"
+                  />
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">章节标题选择器</label>
+                  <input 
+                    v-model="formData.selectors.chapterTitle" 
+                    type="text" 
+                    class="form-input"
+                    placeholder="例如：.chapter-title"
+                  />
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">章节URL选择器</label>
+                  <input 
+                    v-model="formData.selectors.chapterUrl" 
+                    type="text" 
+                    class="form-input"
+                    placeholder="例如：a.chapter-link"
+                  />
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">正文内容选择器</label>
+                  <input 
+                    v-model="formData.selectors.content" 
+                    type="text" 
+                    class="form-input"
+                    placeholder="例如：.chapter-content"
+                  />
+                </div>
               </div>
-              <div class="form-group">
-                <label>书名选择器</label>
-                <input 
-                  v-model="formData.selectors.bookTitle"
-                  type="text"
-                  placeholder=".book-title"
-                  class="form-input"
-                />
-              </div>
-            </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label>作者选择器</label>
-                <input 
-                  v-model="formData.selectors.bookAuthor"
-                  type="text"
-                  placeholder=".book-author"
-                  class="form-input"
-                />
-              </div>
-              <div class="form-group">
-                <label>封面选择器</label>
-                <input 
-                  v-model="formData.selectors.bookCover"
-                  type="text"
-                  placeholder=".book-cover img"
-                  class="form-input"
-                />
-              </div>
-            </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label>章节列表选择器</label>
-                <input 
-                  v-model="formData.selectors.chapters"
-                  type="text"
-                  placeholder=".chapter-list li"
-                  class="form-input"
-                />
-              </div>
-              <div class="form-group">
-                <label>章节标题选择器</label>
-                <input 
-                  v-model="formData.selectors.chapterTitle"
-                  type="text"
-                  placeholder=".chapter-title"
-                  class="form-input"
-                />
-              </div>
-            </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label>章节内容选择器</label>
-                <input 
-                  v-model="formData.selectors.content"
-                  type="text"
-                  placeholder=".chapter-content"
-                  class="form-input"
-                />
-              </div>
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input v-model="formData.enabled" type="checkbox" />
-              启用此书源
-            </label>
-          </div>
-        </div>
-        
-        <div class="dialog-actions">
-          <button @click="closeDialog" class="btn-cancel">取消</button>
-          <button @click="saveSource" class="btn-confirm">
-            {{ showEditDialog ? '保存' : '添加' }}
-          </button>
-        </div>
-      </div>
-    </div>
 
-    <!-- 测试对话框 -->
-    <div v-if="showTestDialog" class="dialog-overlay" @click="showTestDialog = false">
-      <div class="dialog dialog-small" @click.stop>
-        <h2 class="dialog-title">测试书源</h2>
-        <div class="dialog-content">
-          <div v-if="testing" class="testing">
-            <div class="loading-spinner"></div>
-            <p>正在测试...</p>
-          </div>
-          <div v-else-if="testResult" :class="['test-result', testResult.success ? 'success' : 'error']">
-            <p class="result-icon">{{ testResult.success ? '✅' : '❌' }}</p>
-            <p class="result-message">{{ testResult.message }}</p>
-            <p v-if="testResult.details" class="result-details">{{ testResult.details }}</p>
-          </div>
-          <div class="test-input">
-            <input 
-              v-model="testKeyword"
-              type="text"
-              placeholder="输入测试关键词"
-              class="form-input"
-            />
-            <button @click="runTest" class="btn-test-full">测试搜索</button>
+              <div class="form-group">
+                <label class="form-checkbox">
+                  <input 
+                    v-model="formData.enabled" 
+                    type="checkbox" 
+                    class="form-checkbox-input"
+                  />
+                  <span class="form-checkbox-label">启用此书源</span>
+                </label>
+              </div>
+            </form>
+            <footer class="dialog-footer">
+              <button @click="closeDialog" class="btn btn-outline">
+                取消
+              </button>
+              <button @click="saveSource" class="btn btn-primary">
+                保存
+              </button>
+            </footer>
           </div>
         </div>
-        <div class="dialog-actions">
-          <button @click="showTestDialog = false" class="btn-cancel">关闭</button>
+      </transition>
+    </teleport>
+
+    <!-- 测试结果对话框 -->
+    <teleport to="body">
+      <transition name="fade">
+        <div v-if="showTestResult" class="dialog-overlay" @click="showTestResult = false">
+          <div class="dialog-content animate-slide-up" @click.stop style="max-width: 800px;">
+            <header class="dialog-header">
+              <h2 class="dialog-title">测试结果</h2>
+              <button class="btn-icon" @click="showTestResult = false" aria-label="关闭">
+                ✕
+              </button>
+            </header>
+            <div class="dialog-body">
+              <div v-if="testLoading" class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>测试中...</p>
+              </div>
+              <pre v-else class="test-result">{{ testResult }}</pre>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
+      </transition>
+    </teleport>
+  </main>
 </template>
 
 <script setup lang="ts">
 /**
- * SourceView - 书源管理页面
+ * SourceView - 书源管理页面 (现代化版本)
  * 
  * 功能：
  * 1. 书源列表展示
- * 2. 添加/编辑/删除书源
+ * 2. 添加/编辑书源
  * 3. 启用/禁用书源
- * 4. 测试书源
+ * 4. 测试书源配置
+ * 5. 删除书源
  */
 
-import { ref, onMounted } from 'vue';
-import { db, type BookSource, type SourceSelectors } from '@/db';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { db, type BookSource } from '@/db';
 import { crawler } from '@/services/crawler';
 
-// ============ 状态 ============
+// ============ 状态管理 ============
+const router = useRouter();
+
+// ============ 本地状态 ============
 const sources = ref<BookSource[]>([]);
 const showAddDialog = ref(false);
-const showEditDialog = ref(false);
-const showTestDialog = ref(false);
-const testing = ref(false);
-const testResult = ref<{ success: boolean; message: string; details?: string } | null>(null);
-const testKeyword = ref('');
-const testingSource = ref<BookSource | null>(null);
+const showTestResult = ref(false);
+const testLoading = ref(false);
+const testResult = ref('');
+const editingSource = ref<BookSource | null>(null);
 
 // ============ 表单数据 ============
-const defaultSelectors: SourceSelectors = {
-  searchResults: '.book-item',
-  bookTitle: '.book-title',
-  bookAuthor: '.book-author',
-  bookCover: '.book-cover img',
-  bookUrl: 'a.book-link',
-  chapters: '.chapter-list li',
-  chapterTitle: '.chapter-title',
-  chapterUrl: '.chapter-link',
-  content: '.chapter-content'
-};
-
-const formData = ref<BookSource>({
-  id: 0,
+const formData = reactive({
   name: '',
   baseUrl: '',
   searchUrl: '',
-  detailUrl: '',
-  chapterUrl: '',
-  contentUrl: '',
-  selectors: { ...defaultSelectors },
-  enabled: true,
-  createdAt: Date.now()
+  selectors: {
+    searchResults: '',
+    bookTitle: '',
+    bookAuthor: '',
+    bookCover: '',
+    bookUrl: '',
+    chapters: '',
+    chapterTitle: '',
+    chapterUrl: '',
+    content: ''
+  },
+  enabled: true
+});
+
+// ============ 计算属性 ============
+const isFormValid = computed(() => {
+  return formData.name && formData.baseUrl && formData.searchUrl;
 });
 
 // ============ 生命周期 ============
-onMounted(async () => {
-  await loadSources();
+onMounted(() => {
+  loadSources();
 });
 
 // ============ 方法 ============
 
 /**
- * 加载所有书源
+ * 加载书源列表
  */
 async function loadSources() {
   try {
     sources.value = await db.sources.toArray();
-  } catch (err) {
-    console.error('[SourceView] 加载书源失败:', err);
+  } catch (error) {
+    console.error('[SourceView] 加载书源失败:', error);
+    alert('❌ 加载书源失败');
   }
 }
 
 /**
- * 切换书源启用状态
- * 
- * @param source - 书源对象
+ * 显示添加书源对话框
  */
-async function toggleSource(source: BookSource) {
-  try {
-    await db.sources.update(source.id!, {
-      enabled: !source.enabled
-    });
-    source.enabled = !source.enabled;
-  } catch (err) {
-    console.error('[SourceView] 更新书源状态失败:', err);
-    alert('操作失败');
-  }
+function showAddSource() {
+  resetForm();
+  showAddDialog.value = true;
 }
 
 /**
  * 编辑书源
- * 
- * @param source - 书源对象
  */
 function editSource(source: BookSource) {
-  formData.value = { ...source, selectors: { ...source.selectors } };
-  showEditDialog.value = true;
+  editingSource.value = source;
+  Object.assign(formData, source);
+  showAddDialog.value = true;
 }
 
 /**
- * 测试书源
- * 
- * @param source - 书源对象
+ * 重置表单
  */
-function testSource(source: BookSource) {
-  testingSource.value = source;
-  testKeyword.value = '';
-  testResult.value = null;
-  testing.value = false;
-  showTestDialog.value = true;
+function resetForm() {
+  Object.assign(formData, {
+    name: '',
+    baseUrl: '',
+    searchUrl: '',
+    selectors: {
+      searchResults: '',
+      bookTitle: '',
+      bookAuthor: '',
+      bookCover: '',
+      bookUrl: '',
+      chapters: '',
+      chapterTitle: '',
+      chapterUrl: '',
+      content: ''
+    },
+    enabled: true
+  });
+  editingSource.value = null;
 }
 
 /**
- * 运行书源测试
- */
-async function runTest() {
-  if (!testingSource.value) return;
-  
-  if (!testKeyword.value.trim()) {
-    testResult.value = {
-      success: false,
-      message: '请输入测试关键词'
-    };
-    return;
-  }
-  
-  testing.value = true;
-  testResult.value = null;
-  
-  try {
-    const results = await crawler.search(testingSource.value, testKeyword.value);
-    
-    if (results.length > 0) {
-      testResult.value = {
-        success: true,
-        message: `搜索成功！找到 ${results.length} 本书`,
-        details: results.slice(0, 3).map(r => `• ${r.title} - ${r.author}`).join('\n')
-      };
-    } else {
-      testResult.value = {
-        success: false,
-        message: '搜索成功但未找到结果',
-        details: '可能原因：关键词不匹配或书源选择器配置有误'
-      };
-    }
-  } catch (err) {
-    testResult.value = {
-      success: false,
-      message: '搜索失败',
-      details: err instanceof Error ? err.message : '未知错误'
-    };
-  } finally {
-    testing.value = false;
-  }
-}
-
-/**
- * 删除书源
- * 
- * @param source - 书源对象
- */
-async function deleteSource(source: BookSource) {
-  if (!confirm(`确定要删除书源"${source.name}"吗？`)) return;
-  
-  try {
-    await db.sources.delete(source.id!);
-    sources.value = sources.value.filter(s => s.id !== source.id);
-  } catch (err) {
-    console.error('[SourceView] 删除书源失败:', err);
-    alert('删除失败');
-  }
-}
-
-/**
- * 保存书源（新增/编辑）
+ * 保存书源
  */
 async function saveSource() {
-  // 验证必填字段
-  if (!formData.value.name.trim() || !formData.value.baseUrl.trim() || !formData.value.searchUrl.trim()) {
-    alert('请填写必填字段（书名、基础 URL、搜索 URL）');
+  if (!isFormValid.value) {
+    alert('❌ 请填写必填字段');
     return;
   }
-  
+
   try {
-    if (showEditDialog.value && formData.value.id) {
-      // 更新
-      await db.sources.update(formData.value.id, formData.value);
+    const sourceData: Omit<BookSource, 'id'> = {
+      name: formData.name,
+      baseUrl: formData.baseUrl,
+      searchUrl: formData.searchUrl,
+      detailUrl: formData.baseUrl + '/book/{id}',
+      chapterUrl: formData.baseUrl + '/book/{id}/chapters',
+      contentUrl: formData.baseUrl + '/chapter/{id}',
+      selectors: formData.selectors,
+      enabled: formData.enabled,
+      createdAt: Date.now()
+    };
+
+    if (editingSource.value) {
+      // 更新现有书源
+      await db.sources.update(editingSource.value.id!, sourceData);
+      alert('✅ 书源更新成功！');
     } else {
-      // 新增
-      formData.value.createdAt = Date.now();
-      await db.sources.add(formData.value);
+      // 添加新书源
+      await db.sources.add(sourceData);
+      alert('✅ 书源添加成功！');
     }
-    
+
+    // 重新加载列表
     await loadSources();
     closeDialog();
-    alert('✅ 保存成功');
-  } catch (err) {
-    console.error('[SourceView] 保存书源失败:', err);
-    alert(`保存失败：${err instanceof Error ? err.message : '未知错误'}`);
+  } catch (error) {
+    console.error('[SourceView] 保存书源失败:', error);
+    alert(`❌ 保存失败: ${(error as Error).message}`);
   }
 }
 
@@ -464,106 +421,128 @@ async function saveSource() {
  */
 function closeDialog() {
   showAddDialog.value = false;
-  showEditDialog.value = false;
-  showTestDialog.value = false;
   resetForm();
 }
 
 /**
- * 重置表单
+ * 删除书源
  */
-function resetForm() {
-  formData.value = {
-    id: 0,
-    name: '',
-    baseUrl: '',
-    searchUrl: '',
-    detailUrl: '',
-    chapterUrl: '',
-    contentUrl: '',
-    selectors: { ...defaultSelectors },
-    enabled: true,
-    createdAt: Date.now()
-  };
+async function deleteSource(source: BookSource) {
+  if (!confirm(`确定要删除书源 "${source.name}" 吗？`)) {
+    return;
+  }
+
+  try {
+    await db.sources.delete(source.id!);
+    await loadSources();
+    alert('✅ 书源删除成功！');
+  } catch (error) {
+    console.error('[SourceView] 删除书源失败:', error);
+    alert(`❌ 删除失败: ${(error as Error).message}`);
+  }
+}
+
+/**
+ * 测试书源
+ */
+async function testSource(source: BookSource) {
+  testLoading.value = true;
+  showTestResult.value = true;
+  testResult.value = '';
+
+  try {
+    // 使用示例关键词测试
+    const results = await crawler.search(source, '测试');
+    testResult.value = JSON.stringify(results, null, 2);
+  } catch (error) {
+    testResult.value = `测试失败: ${(error as Error).message}`;
+  } finally {
+    testLoading.value = false;
+  }
+}
+
+/**
+ * 切启/禁用书源
+ */
+async function toggleSource(source: BookSource) {
+  try {
+    await db.sources.update(source.id!, { enabled: !source.enabled });
+    await loadSources();
+  } catch (error) {
+    console.error('[SourceView] 切启/禁用书源失败:', error);
+    alert(`❌ 操作失败: ${(error as Error).message}`);
+  }
 }
 
 /**
  * 格式化日期
- * 
- * @param timestamp - 时间戳
- * @returns 格式化后的日期字符串
  */
 function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleDateString('zh-CN');
+  return new Date(timestamp).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
 }
 </script>
 
 <style scoped>
-/**
- * 书源管理页面样式
- */
+@import '@/assets/design-tokens.css';
+
+/* ═══════════════════════════════════════════════════════════
+   书源管理页面布局
+   ═══════════════════════════════════════════════════════════ */
 
 .source-view {
   min-height: 100vh;
-  background: #f5f5f5;
-  padding: 20px;
+  background: var(--color-bg);
 }
 
-/* 顶部导航 */
+/* ═══════════════════════════════════════════════════════════
+   顶部导航
+   ═══════════════════════════════════════════════════════════ */
+
 .source-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  height: var(--header-height);
+  backdrop-filter: blur(8px);
 }
 
-.btn-back {
-  padding: 8px 15px;
-  background: transparent;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.btn-back:hover {
-  background: #f0f0f0;
+.source-header .container {
+  height: 100%;
 }
 
 .source-title {
-  font-size: 20px;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
-.btn-add-source {
-  padding: 10px 20px;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-}
+/* ═══════════════════════════════════════════════════════════
+   书源列表
+   ═══════════════════════════════════════════════════════════ */
 
-.btn-add-source:hover {
-  background: #45a049;
-}
-
-/* 书源列表 */
 .source-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  padding: var(--space-4) 0;
 }
 
 .source-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  transition: all var(--duration-200) var(--ease-in-out);
+}
+
+.source-item:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .source-item.disabled {
@@ -571,340 +550,374 @@ function formatDate(timestamp: number): string {
 }
 
 .source-info {
-  flex: 1;
+  margin-bottom: var(--space-4);
 }
 
 .source-name {
-  font-size: 18px;
-  margin: 0 0 8px;
-  color: #333;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
 }
 
 .source-url {
-  font-size: 13px;
-  color: #999;
-  margin: 0 0 10px;
-  word-break: break-all;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-2);
 }
 
 .source-meta {
   display: flex;
-  gap: 10px;
   align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
-.status-tag {
-  padding: 4px 10px;
-  background: #f5f5f5;
-  color: #999;
-  border-radius: 12px;
-  font-size: 12px;
+.status-badge {
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-success);
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
 }
 
-.status-tag.active {
-  background: #E8F5E9;
-  color: #388E3C;
+.status-badge:not(.active) {
+  background: var(--color-danger);
 }
 
 .create-time {
-  font-size: 12px;
-  color: #bbb;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
 }
 
 .source-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
-.btn-action {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  background: #f0f0f0;
-  color: #333;
-}
+/* ═══════════════════════════════════════════════════════════
+   空状态
+   ═══════════════════════════════════════════════════════════ */
 
-.btn-action:hover {
-  opacity: 0.8;
-}
-
-.btn-enable {
-  background: #4CAF50;
-  color: white;
-}
-
-.btn-disable {
-  background: #FF9800;
-  color: white;
-}
-
-.btn-edit {
-  background: #2196F3;
-  color: white;
-}
-
-.btn-test {
-  background: #9C27B0;
-  color: white;
-}
-
-.btn-delete {
-  background: #f44336;
-  color: white;
-}
-
-/* 空状态 */
 .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-24) var(--space-4);
   text-align: center;
-  padding: 80px 20px;
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
 }
 
 .empty-icon {
   font-size: 80px;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-6);
+  opacity: 0.5;
 }
 
 .empty-title {
-  font-size: 20px;
-  color: #666;
-  margin-bottom: 10px;
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
 }
 
 .empty-text {
-  font-size: 14px;
-  color: #999;
-  margin-bottom: 30px;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-6);
 }
 
-.btn-primary {
-  padding: 12px 24px;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-}
+/* ═══════════════════════════════════════════════════════════
+   对话框
+   ═══════════════════════════════════════════════════════════ */
 
-/* 对话框 */
 .dialog-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
+  padding: var(--space-4);
+  backdrop-filter: blur(4px);
 }
 
-.dialog {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  width: 90%;
-  max-width: 700px;
-  max-height: 90vh;
-  overflow-y: auto;
+.dialog-content {
+  background: var(--color-surface);
+  border-radius: var(--radius-2xl);
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-2xl);
+  overflow: hidden;
 }
 
-.dialog-small {
-  max-width: 500px;
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .dialog-title {
-  margin: 0 0 20px;
-  font-size: 20px;
-  color: #333;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
 }
 
-/* 表单样式 */
+.dialog-body {
+  padding: var(--space-6);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   表单样式
+   ═══════════════════════════════════════════════════════════ */
+
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: var(--space-4);
 }
 
-.form-group label {
+.form-label {
   display: block;
-  margin-bottom: 6px;
-  font-size: 14px;
-  color: #555;
-  font-weight: 500;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
 }
 
 .form-input {
   width: 100%;
-  padding: 10px 12px;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: var(--space-3);
+  background: var(--color-neutral-50);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  transition: all var(--duration-200) var(--ease-in-out);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #2196F3;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 4px var(--color-primary-100);
 }
 
 .form-hint {
-  margin-top: 5px;
-  font-size: 12px;
-  color: #999;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-2);
+  margin-bottom: 0;
 }
 
 .form-section {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 2px solid #f0f0f0;
+  margin: var(--space-6) 0;
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.section-title {
-  font-size: 16px;
-  margin: 0 0 15px;
-  color: #333;
+.form-section-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4);
 }
 
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-}
-
-.checkbox-label {
+.form-checkbox {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   cursor: pointer;
-  font-weight: normal;
 }
 
-.checkbox-label input[type="checkbox"] {
+.form-checkbox-input {
   width: 18px;
   height: 18px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  accent-color: var(--color-primary-500);
 }
 
-/* 对话框操作 */
-.dialog-actions {
+.form-checkbox-label {
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   测试结果
+   ═══════════════════════════════════════════════════════════ */
+
+.test-result {
+  background: var(--color-neutral-50);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   加载状态
+   ═══════════════════════════════════════════════════════════ */
+
+.loading-container {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.btn-cancel {
-  padding: 8px 16px;
-  background: #f5f5f5;
-  color: #333;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-confirm {
-  padding: 8px 16px;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* 测试对话框 */
-.testing {
-  text-align: center;
-  padding: 20px;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-8);
 }
 
 .loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #2196F3;
-  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--color-neutral-200);
+  border-top-color: var(--color-primary-500);
+  border-radius: var(--radius-full);
   animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
-.test-result {
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
+/* ═══════════════════════════════════════════════════════════
+   按钮样式
+   ═══════════════════════════════════════════════════════════ */
 
-.test-result.success {
-  background: #E8F5E9;
-  color: #2E7D32;
-}
-
-.test-result.error {
-  background: #FFEBEE;
-  color: #C62828;
-}
-
-.result-icon {
-  font-size: 32px;
-  margin-bottom: 10px;
-}
-
-.result-message {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.result-details {
-  font-size: 14px;
-  white-space: pre-wrap;
-  line-height: 1.6;
-}
-
-.test-input {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.test-input .form-input {
-  flex: 1;
-}
-
-.btn-test-full {
-  padding: 10px 20px;
-  background: #9C27B0;
-  color: white;
-  border: none;
-  border-radius: 6px;
+.btn {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
   cursor: pointer;
-  white-space: nowrap;
+  border: none;
+  transition: all var(--duration-200) var(--ease-in-out);
 }
 
-/* 移动端适配 */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-primary-500);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-600);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.btn-outline:hover {
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-300);
+}
+
+.btn-danger {
+  background: var(--color-danger);
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #d32f2f;
+}
+
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-lg);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--duration-150) var(--ease-in-out);
+}
+
+.btn-icon:hover {
+  background: var(--color-neutral-100);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   动画
+   ═══════════════════════════════════════════════════════════ */
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--duration-300) var(--ease-in-out);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   响应式调整
+   ═══════════════════════════════════════════════════════════ */
+
 @media (max-width: 768px) {
   .source-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
+    padding: var(--space-3);
   }
   
   .source-actions {
-    width: 100%;
-    flex-wrap: wrap;
+    flex-direction: column;
   }
   
-  .btn-action {
-    flex: 1;
-    min-width: 60px;
+  .dialog-content {
+    margin: var(--space-4);
+    max-width: none;
   }
   
-  .form-row {
-    grid-template-columns: 1fr;
+  .dialog-body {
+    padding: var(--space-4);
+  }
+  
+  .dialog-footer {
+    padding: var(--space-4);
+  }
+}
+
+/* 减少动画 (无障碍) */
+@media (prefers-reduced-motion: reduce) {
+  .source-item,
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: none;
   }
 }
 </style>
