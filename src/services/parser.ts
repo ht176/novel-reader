@@ -142,8 +142,7 @@ export class FileParserService {
       // 注意：浏览器环境解析 EPUB 需要额外库
       // 这里提供简化版本，实际项目建议使用 @vitebook/epub-parser 或类似库
       
-      // 临时实现：使用 JSZip 解压
-      // @ts-ignore - JSZip types not installed
+      // 使用 JSZip 解压 EPUB 文件
       const JSZip = (await import('jszip')).default;
       const zip = await JSZip.loadAsync(file);
       
