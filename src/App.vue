@@ -10,12 +10,14 @@
  * 
  * 功能：
  * 1. 初始化数据库
- * 2. 提供路由出口
+ * 2. 初始化主题
+ * 3. 提供路由出口
  */
 
 import { onMounted } from 'vue';
 import { RouterView } from 'vue-router';
 import { db } from '@/db';
+import { useThemeStore } from '@/stores/theme';
 
 /**
  * 应用初始化
@@ -24,6 +26,11 @@ onMounted(async () => {
   try {
     // 初始化数据库
     await db.initialize();
+    
+    // 初始化主题
+    const themeStore = useThemeStore();
+    themeStore.initialize();
+    
     console.log('[App] 应用初始化完成');
   } catch (error) {
     console.error('[App] 初始化失败:', error);

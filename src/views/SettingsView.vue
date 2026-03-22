@@ -31,25 +31,46 @@
           </div>
           
           <div class="setting-item">
+            <label class="setting-label">字体大小调节</label>
+            <div class="font-size-controls flex items-center gap-3">
+              <button @click="decreaseFontSize" class="btn btn-outline" :disabled="defaultFontSize <= 12">
+                −
+              </button>
+              <span class="font-size-display text-center" style="min-width: 60px;">
+                {{ defaultFontSize }}px
+              </span>
+              <button @click="increaseFontSize" class="btn btn-outline" :disabled="defaultFontSize >= 24">
+                +
+              </button>
+            </div>
+          </div>
+          
+          <div class="setting-item">
             <label class="setting-label">默认主题</label>
             <div class="button-group">
               <button 
-                :class="['theme-btn', { active: defaultTheme === 'light' }]"
-                @click="defaultTheme = 'light'"
+                :class="['theme-btn', { active: currentTheme === 'light' }]"
+                @click="setDefaultTheme('light')"
               >
                 ☀️ 日间
               </button>
               <button 
-                :class="['theme-btn', { active: defaultTheme === 'dark' }]"
-                @click="defaultTheme = 'dark'"
+                :class="['theme-btn', { active: currentTheme === 'dark' }]"
+                @click="setDefaultTheme('dark')"
               >
                 🌙 夜间
               </button>
               <button 
-                :class="['theme-btn', { active: defaultTheme === 'sepia' }]"
-                @click="defaultTheme = 'sepia'"
+                :class="['theme-btn', { active: currentTheme === 'sepia' }]"
+                @click="setDefaultTheme('sepia')"
               >
                 📜 护眼
+              </button>
+              <button 
+                :class="['theme-btn', { active: currentTheme === 'auto' }]"
+                @click="setDefaultTheme('auto')"
+              >
+                🤖 自动
               </button>
             </div>
           </div>
@@ -164,16 +185,20 @@
  * 4. 关于信息
  */
 
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { db } from '@/db';
+import { useThemeStore, type ThemeType } from '@/stores/theme';
 
 // ============ 状态管理 ============
 const router = useRouter();
 
+// ============ 状态管理 ============
+const themeStore = useThemeStore();
+
 // ============ 本地状态 ============
 const defaultFontSize = ref<number>(16);
-const defaultTheme = ref<'light' | 'dark' | 'sepia'>('light');
+const defaultTheme = ref<ThemeType>('light');
 const defaultLineHeight = ref<string>('1.8');
 const version = ref<string>('v0.1.0');
 
@@ -473,8 +498,36 @@ async function resetDefaultSources() {
   }
 }
 
+/**
+ * 设置默认主题
+ */
+function setDefaultTheme(theme: ThemeType) {
+  themeStore.setTheme(theme);
+}
+
+/**
+ * 减小字体大小
+ */
+function decreaseFontSize() {
+  if (defaultFontSize.value > 12) {
+    defaultFontSize.value -= 2;
+  }
+}
+
+/**
+ * 增大字体大小
+ */
+function increaseFontSize() {
+  if (defaultFontSize.value < 24) {
+    defaultFontSize.value += 2;
+  }
+}
+
+// 计算属性
+const currentTheme = computed(() => themeStore.currentTheme);
+
 // 监听设置变化并保存
-watch([defaultFontSize, defaultTheme, defaultLineHeight], saveSettings);
+watch([defaultFontSize, defaultLineHeight], saveSettings);
 </script>
 
 <style scoped>
