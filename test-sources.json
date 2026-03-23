@@ -1,0 +1,44 @@
+[
+  {
+    "name": "起点中文",
+    "baseUrl": "https://www.qidian.com",
+    "searchUrl": "https://www.qidian.com/so/{{key}}.html",
+    "detailUrl": "https://m.qidian.com/book/{id}/",
+    "chapterUrl": "https://vipreader.qidian.com/chapter/{id}/{chapterId}/",
+    "contentUrl": "https://vipreader.qidian.com/chapter/{id}/{chapterId}/",
+    "selectors": {
+      "searchResults": ".res-book-item",
+      "bookTitle": ".book-info-title a",
+      "bookAuthor": ".author .name",
+      "bookCover": ".book-img-box img",
+      "bookUrl": "a[data-bid]",
+      "chapters": ".chapter-list li",
+      "chapterTitle": ".chapter-title",
+      "chapterUrl": ".chapter-link",
+      "content": ".read-content"
+    },
+    "enabled": true,
+    "createdAt": 1711177200000
+  },
+  {
+    "name": "番茄小说",
+    "baseUrl": "https://fanqienovel.com",
+    "searchUrl": "https://fanqienovel.com/search?query={{key}}",
+    "detailUrl": "https://fanqienovel.com/page/{id}",
+    "chapterUrl": "https://fanqienovel.com/reader/{id}/{chapterId}",
+    "contentUrl": "https://fanqienovel.com/reader/{id}/{chapterId}",
+    "selectors": {
+      "searchResults": ".book-list .book-item",
+      "bookTitle": ".book-title",
+      "bookAuthor": ".book-author",
+      "bookCover": ".book-cover img",
+      "bookUrl": ".book-link",
+      "chapters": ".chapter-list .chapter-item",
+      "chapterTitle": ".chapter-name",
+      "chapterUrl": ".chapter-link",
+      "content": ".chapter-content"
+    },
+    "enabled": false,
+    "createdAt": 1711177200000
+  }
+]

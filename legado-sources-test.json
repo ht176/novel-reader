@@ -1,0 +1,66 @@
+[
+  {
+    "bookSourceComment": "起点中文网 - 正版书源",
+    "bookSourceGroup": "正版",
+    "bookSourceName": "起点中文",
+    "bookSourceType": 0,
+    "bookSourceUrl": "https://www.qidian.com",
+    "bookUrlPattern": "https://m\\.qidian\\.com/book/.+",
+    "enabled": true,
+    "enabledCookieJar": true,
+    "lastUpdateTime": 1734435054194,
+    "ruleSearch": {
+      "bookList": ".res-book-item",
+      "name": ".book-info-title a",
+      "author": ".author .name",
+      "coverUrl": ".book-img-box img",
+      "bookUrl": "a[data-bid]",
+      "intro": ".intro"
+    },
+    "ruleBookInfo": {
+      "name": "h1.book-title",
+      "author": ".author",
+      "coverUrl": ".book-cover img",
+      "intro": ".book-intro",
+      "lastChapter": ".last-chapter"
+    },
+    "ruleToc": {
+      "chapterList": ".chapter-list li",
+      "chapterName": ".chapter-title",
+      "chapterUrl": ".chapter-link"
+    },
+    "ruleContent": {
+      "content": ".read-content"
+    }
+  },
+  {
+    "bookSourceName": "番茄小说",
+    "bookSourceType": 0,
+    "bookSourceUrl": "https://fanqienovel.com",
+    "enabled": true,
+    "lastUpdateTime": 1725532799521,
+    "ruleSearch": {
+      "bookList": ".book-list .book-item",
+      "name": ".book-title",
+      "author": ".book-author",
+      "coverUrl": ".book-cover img",
+      "bookUrl": ".book-link",
+      "intro": ".book-intro"
+    },
+    "ruleBookInfo": {
+      "name": ".book-title",
+      "author": ".book-author",
+      "coverUrl": ".book-cover img",
+      "intro": ".book-description",
+      "lastChapter": ".last-chapter"
+    },
+    "ruleToc": {
+      "chapterList": ".chapter-list .chapter-item",
+      "chapterName": ".chapter-name",
+      "chapterUrl": ".chapter-link"
+    },
+    "ruleContent": {
+      "content": ".chapter-content"
+    }
+  }
+]

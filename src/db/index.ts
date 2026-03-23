@@ -60,23 +60,30 @@ export interface ReadingProgress {
 }
 
 /**
- * 书源接口定义
+ * 书源接口定义（支持两种格式）
+ * 1. 本项目格式：baseUrl, selectors 等
+ * 2. 阅读 APP（Legado）格式：bookSourceUrl, ruleSearch 等
  */
 export interface BookSource {
   id?: number;                // 自增 ID
   name: string;               // 书源名称
-  baseUrl: string;            // 基础 URL
+  baseUrl: string;            // 基础 URL（本项目格式）
+  bookSourceUrl?: string;     // 书源 URL（阅读 APP 格式）
   searchUrl: string;          // 搜索 URL 模板 ({keyword})
   detailUrl: string;          // 详情 URL 模板
   chapterUrl: string;         // 章节列表 URL 模板
   contentUrl: string;         // 内容 URL 模板
-  selectors: SourceSelectors; // 选择器配置
+  selectors?: SourceSelectors; // 选择器配置（本项目格式）
+  ruleSearch?: LegadoRule;    // 搜索规则（阅读 APP 格式）
+  ruleBookInfo?: LegadoBookRule; // 书籍信息规则（阅读 APP 格式）
+  ruleToc?: LegadoTocRule;    // 目录规则（阅读 APP 格式）
+  ruleContent?: LegadoContentRule; // 内容规则（阅读 APP 格式）
   enabled: boolean;           // 是否启用
   createdAt: number;          // 创建时间戳
 }
 
 /**
- * 书源选择器配置
+ * 书源选择器配置（本项目格式）
  */
 export interface SourceSelectors {
   searchResults: string;      // 搜索结果列表选择器
@@ -88,6 +95,45 @@ export interface SourceSelectors {
   chapterTitle: string;       // 章节标题选择器
   chapterUrl: string;         // 章节 URL 选择器
   content: string;            // 正文内容选择器
+}
+
+/**
+ * 阅读 APP（Legado）规则格式
+ */
+export interface LegadoRule {
+  bookList: string;           // 书籍列表选择器
+  name: string;               // 书名选择器
+  author: string;             // 作者选择器
+  coverUrl: string;           // 封面选择器
+  bookUrl: string;            // 书籍 URL 选择器
+  intro?: string;             // 简介选择器
+  kind?: string;              // 分类选择器
+  lastChapter?: string;       // 最新章节选择器
+  wordCount?: string;         // 字数选择器
+}
+
+export interface LegadoBookRule {
+  name: string;               // 书名选择器
+  author: string;             // 作者选择器
+  coverUrl: string;           // 封面选择器
+  intro: string;              // 简介选择器
+  kind?: string;              // 分类选择器
+  lastChapter: string;        // 最新章节选择器
+  tocUrl?: string;            // 目录 URL 选择器
+  wordCount?: string;         // 字数选择器
+}
+
+export interface LegadoTocRule {
+  chapterList: string;        // 章节列表选择器
+  chapterName: string;        // 章节标题选择器
+  chapterUrl: string;         // 章节 URL 选择器
+  updateTime?: string;        // 更新时间选择器
+  isVip?: string;             // VIP 章节标识
+}
+
+export interface LegadoContentRule {
+  content: string;            // 正文内容选择器
+  replace?: string[];         // 替换规则
 }
 
 /**

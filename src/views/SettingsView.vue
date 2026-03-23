@@ -131,7 +131,27 @@
           <h2 class="section-title">🔗 书源管理</h2>
           
           <div class="setting-item">
-            <label class="setting-label">导入书源</label>
+            <label class="setting-label">手动添加书源</label>
+            <button @click="openAddSourceDialog" class="btn btn-primary">
+              ✏️ 新增
+            </button>
+          </div>
+          
+          <div class="setting-item">
+            <label class="setting-label">从 URL 导入</label>
+            <input 
+              v-model="sourceUrlInput"
+              type="url" 
+              placeholder="https://example.com/sources.json"
+              class="url-input"
+            />
+            <button @click="importFromUrl" class="btn btn-primary" :disabled="!sourceUrlInput.trim()">
+              🌐 导入
+            </button>
+          </div>
+          
+          <div class="setting-item">
+            <label class="setting-label">导入书源文件</label>
             <input 
               ref="importSourceInput"
               type="file" 
@@ -139,7 +159,7 @@
               @change="importSources"
               class="file-input-hidden"
             />
-            <button @click="triggerImportSource" class="btn btn-primary">
+            <button @click="triggerImportSource" class="btn btn-secondary">
               📁 导入
             </button>
           </div>
@@ -169,6 +189,102 @@
             <p class="license-info">许可证: MIT</p>
           </div>
         </section>
+      </div>
+    </div>
+
+    <!-- 新增书源对话框 -->
+    <div v-if="showAddSourceDialog" class="dialog-overlay" @click="showAddSourceDialog = false">
+      <div class="dialog dialog-large animate-slide-up" @click.stop>
+        <div class="dialog-header">
+          <h2 class="dialog-title">✏️ 新增书源</h2>
+          <button class="btn-icon" @click="showAddSourceDialog = false">✕</button>
+        </div>
+        <div class="dialog-content">
+          <div class="form-group">
+            <label class="form-label">书源名称 *</label>
+            <input v-model="newSource.name" type="text" class="form-input" placeholder="例如：起点中文" />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">书源 URL *</label>
+            <input v-model="newSource.bookSourceUrl" type="url" class="form-input" placeholder="https://www.qidian.com" />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">搜索 URL *</label>
+            <input v-model="newSource.searchUrl" type="url" class="form-input" placeholder="https://example.com/search?q={keyword}" />
+            <p class="form-hint">使用 {'{keyword}'} 作为关键词占位符</p>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">书籍列表选择器 *</label>
+            <input v-model="newSource.ruleSearch.bookList" type="text" class="form-input" placeholder=".book-list .book-item" />
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">书名选择器 *</label>
+              <input v-model="newSource.ruleSearch.name" type="text" class="form-input" placeholder=".book-title" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">作者选择器 *</label>
+              <input v-model="newSource.ruleSearch.author" type="text" class="form-input" placeholder=".book-author" />
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">封面选择器</label>
+              <input v-model="newSource.ruleSearch.coverUrl" type="text" class="form-input" placeholder=".book-cover img" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">书籍 URL 选择器 *</label>
+              <input v-model="newSource.ruleSearch.bookUrl" type="text" class="form-input" placeholder=".book-link" />
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">书籍详情 - 书名选择器 *</label>
+            <input v-model="newSource.ruleBookInfo.name" type="text" class="form-input" placeholder="h1.book-title" />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">书籍详情 - 作者选择器 *</label>
+            <input v-model="newSource.ruleBookInfo.author" type="text" class="form-input" placeholder=".author" />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">章节列表选择器 *</label>
+            <input v-model="newSource.ruleToc.chapterList" type="text" class="form-input" placeholder=".chapter-list li" />
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">章节标题选择器 *</label>
+              <input v-model="newSource.ruleToc.chapterName" type="text" class="form-input" placeholder=".chapter-title" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">章节 URL 选择器 *</label>
+              <input v-model="newSource.ruleToc.chapterUrl" type="text" class="form-input" placeholder=".chapter-link" />
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">正文内容选择器 *</label>
+            <input v-model="newSource.ruleContent.content" type="text" class="form-input" placeholder=".chapter-content" />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-checkbox">
+              <input v-model="newSource.enabled" type="checkbox" />
+              <span>启用此书源</span>
+            </label>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button @click="showAddSourceDialog = false" class="btn btn-outline">取消</button>
+          <button @click="addNewSource" class="btn btn-primary" :disabled="!validateSource()">保存</button>
+        </div>
       </div>
     </div>
   </main>
@@ -205,6 +321,39 @@ const version = ref<string>('v0.1.0');
 // 文件输入引用
 const restoreInput = ref<HTMLInputElement | null>(null);
 const importSourceInput = ref<HTMLInputElement | null>(null);
+
+// 书源管理状态
+const sourceUrlInput = ref<string>('');
+const showAddSourceDialog = ref<boolean>(false);
+const newSource = ref<any>({
+  name: '',
+  bookSourceUrl: '',
+  searchUrl: '',
+  ruleSearch: {
+    bookList: '',
+    name: '',
+    author: '',
+    coverUrl: '',
+    bookUrl: '',
+    intro: ''
+  },
+  ruleBookInfo: {
+    name: '',
+    author: '',
+    coverUrl: '',
+    intro: '',
+    lastChapter: ''
+  },
+  ruleToc: {
+    chapterList: '',
+    chapterName: '',
+    chapterUrl: ''
+  },
+  ruleContent: {
+    content: ''
+  },
+  enabled: true
+});
 
 // ============ 生命周期 ============
 onMounted(() => {
@@ -378,7 +527,141 @@ async function clearAllData() {
 }
 
 /**
- * 导入书源
+ * 打开新增书源对话框
+ */
+function openAddSourceDialog() {
+  // 重置表单
+  newSource.value = {
+    name: '',
+    bookSourceUrl: '',
+    searchUrl: '',
+    ruleSearch: {
+      bookList: '',
+      name: '',
+      author: '',
+      coverUrl: '',
+      bookUrl: '',
+      intro: ''
+    },
+    ruleBookInfo: {
+      name: '',
+      author: '',
+      coverUrl: '',
+      intro: '',
+      lastChapter: ''
+    },
+    ruleToc: {
+      chapterList: '',
+      chapterName: '',
+      chapterUrl: ''
+    },
+    ruleContent: {
+      content: ''
+    },
+    enabled: true
+  };
+  showAddSourceDialog.value = true;
+}
+
+/**
+ * 验证书源配置
+ */
+function validateSource(): boolean {
+  const s = newSource.value;
+  const required = [
+    s.name,
+    s.bookSourceUrl,
+    s.searchUrl,
+    s.ruleSearch.bookList,
+    s.ruleSearch.name,
+    s.ruleSearch.author,
+    s.ruleSearch.bookUrl,
+    s.ruleBookInfo.name,
+    s.ruleBookInfo.author,
+    s.ruleToc.chapterList,
+    s.ruleToc.chapterName,
+    s.ruleToc.chapterUrl,
+    s.ruleContent.content
+  ];
+  
+  return required.every(v => v && v.trim() !== '');
+}
+
+/**
+ * 添加新书源
+ */
+async function addNewSource() {
+  if (!validateSource()) {
+    alert('❌ 请填写所有必填项！');
+    return;
+  }
+  
+  try {
+    const source = {
+      ...newSource.value,
+      id: undefined,
+      createdAt: Date.now(),
+      lastUpdateTime: Date.now()
+    };
+    
+    await db.sources.add(source);
+    
+    alert('✅ 书源添加成功！');
+    showAddSourceDialog.value = false;
+  } catch (error) {
+    alert(`❌ 添加失败：${(error as Error).message}`);
+    console.error('[SettingsView] 添加书源失败:', error);
+  }
+}
+
+/**
+ * 从 URL 导入书源
+ */
+async function importFromUrl() {
+  if (!sourceUrlInput.value.trim()) {
+    alert('❌ 请输入书源 URL！');
+    return;
+  }
+  
+  try {
+    const response = await fetch(sourceUrlInput.value);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const content = await response.text();
+    let sources = JSON.parse(content);
+    
+    if (!Array.isArray(sources)) {
+      throw new Error('书源格式错误，应为 JSON 数组');
+    }
+    
+    // 检测并转换阅读 APP 格式
+    const isLegadoFormat = sources.some((s: any) => s.bookSourceUrl || s.ruleSearch);
+    if (isLegadoFormat) {
+      console.log('[SettingsView] 检测到阅读 APP 格式书源，自动转换中...');
+      sources = sources.map((s: any) => convertLegadoSource(s));
+    }
+    
+    // 确认导入
+    if (!confirm(`确定要导入 ${sources.length} 个书源吗？${isLegadoFormat ? '\n（已自动转换为兼容格式）' : ''}`)) {
+      return;
+    }
+    
+    // 导入书源
+    await db.sources.bulkPut(sources);
+    
+    alert('✅ 书源导入成功！');
+    sourceUrlInput.value = '';
+  } catch (error) {
+    alert(`❌ 导入失败：${(error as Error).message}`);
+    console.error('[SettingsView] 从 URL 导入失败:', error);
+  }
+}
+
+/**
+ * 导入书源（支持阅读 APP 格式）
  */
 async function importSources(event: Event) {
   const target = event.target as HTMLInputElement;
@@ -388,14 +671,21 @@ async function importSources(event: Event) {
   
   try {
     const content = await file.text();
-    const sources = JSON.parse(content);
+    let sources = JSON.parse(content);
     
     if (!Array.isArray(sources)) {
       throw new Error('书源格式错误');
     }
     
+    // 检测并转换阅读 APP 格式
+    const isLegadoFormat = sources.some((s: any) => s.bookSourceUrl || s.ruleSearch);
+    if (isLegadoFormat) {
+      console.log('[SettingsView] 检测到阅读 APP 格式书源，自动转换中...');
+      sources = sources.map((s: any) => convertLegadoSource(s));
+    }
+    
     // 确认导入
-    if (!confirm(`确定要导入 ${sources.length} 个书源吗？`)) {
+    if (!confirm(`确定要导入 ${sources.length} 个书源吗？${isLegadoFormat ? '\n（已自动转换为兼容格式）' : ''}`)) {
       return;
     }
     
@@ -404,7 +694,7 @@ async function importSources(event: Event) {
     
     alert('✅ 书源导入成功！');
   } catch (error) {
-    alert(`❌ 导入失败: ${(error as Error).message}`);
+    alert(`❌ 导入失败：${(error as Error).message}`);
     console.error('[SettingsView] 导入书源失败:', error);
   } finally {
     // 重置文件输入
@@ -412,6 +702,72 @@ async function importSources(event: Event) {
       target.value = '';
     }
   }
+}
+
+/**
+ * 将阅读 APP（Legado）格式转换为项目兼容格式
+ */
+function convertLegadoSource(legadoSource: any): any {
+  const converted: any = {
+    name: legadoSource.bookSourceName || legadoSource.name,
+    baseUrl: legadoSource.bookSourceUrl || legadoSource.baseUrl,
+    searchUrl: legadoSource.searchUrl || '',
+    detailUrl: legadoSource.ruleBookInfo?.tocUrl || '',
+    chapterUrl: '',
+    contentUrl: '',
+    enabled: legadoSource.enabled !== false,
+    createdAt: legadoSource.lastUpdateTime || Date.now()
+  };
+  
+  // 转换搜索规则
+  if (legadoSource.ruleSearch) {
+    converted.ruleSearch = {
+      bookList: legadoSource.ruleSearch.bookList,
+      name: legadoSource.ruleSearch.name,
+      author: legadoSource.ruleSearch.author,
+      coverUrl: legadoSource.ruleSearch.coverUrl,
+      bookUrl: legadoSource.ruleSearch.bookUrl,
+      intro: legadoSource.ruleSearch.intro,
+      kind: legadoSource.ruleSearch.kind,
+      lastChapter: legadoSource.ruleSearch.lastChapter,
+      wordCount: legadoSource.ruleSearch.wordCount
+    };
+  }
+  
+  // 转换书籍信息规则
+  if (legadoSource.ruleBookInfo) {
+    converted.ruleBookInfo = {
+      name: legadoSource.ruleBookInfo.name,
+      author: legadoSource.ruleBookInfo.author,
+      coverUrl: legadoSource.ruleBookInfo.coverUrl,
+      intro: legadoSource.ruleBookInfo.intro,
+      kind: legadoSource.ruleBookInfo.kind,
+      lastChapter: legadoSource.ruleBookInfo.lastChapter,
+      tocUrl: legadoSource.ruleBookInfo.tocUrl,
+      wordCount: legadoSource.ruleBookInfo.wordCount
+    };
+  }
+  
+  // 转换目录规则
+  if (legadoSource.ruleToc) {
+    converted.ruleToc = {
+      chapterList: legadoSource.ruleToc.chapterList,
+      chapterName: legadoSource.ruleToc.chapterName,
+      chapterUrl: legadoSource.ruleToc.chapterUrl,
+      updateTime: legadoSource.ruleToc.updateTime,
+      isVip: legadoSource.ruleToc.isVip
+    };
+  }
+  
+  // 转换内容规则
+  if (legadoSource.ruleContent) {
+    converted.ruleContent = {
+      content: legadoSource.ruleContent.content,
+      replace: legadoSource.ruleContent.replace
+    };
+  }
+  
+  return converted;
 }
 
 /**
@@ -751,6 +1107,101 @@ watch([defaultFontSize, defaultLineHeight], saveSettings);
 
 .file-input-hidden {
   display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   URL 输入框
+   ═══════════════════════════════════════════════════════════ */
+
+.url-input {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  background: var(--color-input);
+  color: var(--color-text-primary);
+  transition: all 0.2s;
+}
+
+.url-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.url-input::placeholder {
+  color: var(--color-text-hint);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   新增书源对话框
+   ═══════════════════════════════════════════════════════════ */
+
+.dialog-large {
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.form-group {
+  margin-bottom: var(--space-4);
+}
+
+.form-label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.form-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  background: var(--color-input);
+  color: var(--color-text-primary);
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-hint);
+  margin-top: var(--space-1);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.form-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════

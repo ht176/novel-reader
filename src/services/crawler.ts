@@ -1,5 +1,5 @@
 /**
- * 书源爬虫服务
+ * 书源爬虫服务（支持两种格式）
  * 
  * 功能：
  * 1. 根据书源配置搜索书籍
@@ -7,11 +7,15 @@
  * 3. 获取章节列表
  * 4. 获取章节内容
  * 
+ * 支持格式：
+ * - 本项目格式：selectors 配置
+ * - 阅读 APP（Legado）格式：ruleSearch, ruleBookInfo 等
+ * 
  * 注意：由于浏览器 CORS 限制，可能需要后端代理或使用浏览器插件
  */
 
 import * as cheerio from 'cheerio';
-import type { BookSource, SourceSelectors, Book, Chapter } from '@/db';
+import type { BookSource, SourceSelectors, Book, Chapter, LegadoRule, LegadoBookRule } from '@/db';
 
 /**
  * 搜索结果接口
@@ -67,7 +71,7 @@ export class CrawlerService {
    * 1. 替换搜索 URL 中的关键词占位符
    * 2. 发送 HTTP 请求获取 HTML
    * 3. 使用 cheerio 解析 HTML
-   * 4. 根据选择器提取书籍信息
+   * 4. 根据选择器提取书籍信息（支持两种格式）
    */
   async search(source: BookSource, keyword: string): Promise<SearchResult[]> {
     try {
@@ -75,33 +79,24 @@ export class CrawlerService {
       const searchUrl = source.searchUrl.replace('{keyword}', encodeURIComponent(keyword));
       
       // 发送请求
-      const html = await this.fetchHtml(searchUrl, source.baseUrl);
+      const html = await this.fetchHtml(searchUrl, source.baseUrl || source.bookSourceUrl);
       
       // 解析 HTML
       const $ = cheerio.load(html);
       
-      // 提取搜索结果
+      // 提取搜索结果（支持两种格式）
       const results: SearchResult[] = [];
-      $(source.selectors.searchResults).each((_, element) => {
-        const title = $(element).find(source.selectors.bookTitle).text().trim();
-        const author = $(element).find(source.selectors.bookAuthor).text().trim();
-        
-        // 跳过无效结果
-        if (!title || !author) return;
-        
-        const coverUrl = $(element).find(source.selectors.bookCover).attr('src');
-        const url = this.resolveUrl($(element).find(source.selectors.bookUrl).attr('href'), source.baseUrl);
-        
-        results.push({
-          title,
-          author,
-          coverUrl: coverUrl ? this.resolveUrl(coverUrl, source.baseUrl) : undefined,
-          url,
-          sourceId: source.id!,
-          sourceName: source.name,
-          description: $(element).find('.description').text().trim() || undefined
-        });
-      });
+      const baseUrl = source.baseUrl || source.bookSourceUrl || '';
+      
+      if (source.ruleSearch) {
+        // 阅读 APP（Legado）格式
+        results.push(...this.parseLegadoSearchResults($, source, baseUrl));
+      } else if (source.selectors) {
+        // 本项目格式
+        results.push(...this.parseStandardSearchResults($, source, baseUrl));
+      } else {
+        throw new Error('书源缺少选择器配置');
+      }
       
       console.log(`[Crawler] 搜索 "${keyword}" 获得 ${results.length} 条结果`);
       return results;
@@ -113,6 +108,70 @@ export class CrawlerService {
   }
 
   /**
+   * 解析标准格式的搜索结果
+   */
+  private parseStandardSearchResults($: cheerio.CheerioAPI, source: BookSource, baseUrl: string): SearchResult[] {
+    const results: SearchResult[] = [];
+    const selectors = source.selectors!;
+    
+    $(selectors.searchResults).each((_, element) => {
+      const title = $(element).find(selectors.bookTitle).text().trim();
+      const author = $(element).find(selectors.bookAuthor).text().trim();
+      
+      // 跳过无效结果
+      if (!title || !author) return;
+      
+      const coverUrl = $(element).find(selectors.bookCover).attr('src');
+      const url = this.resolveUrl($(element).find(selectors.bookUrl).attr('href'), baseUrl);
+      
+      results.push({
+        title,
+        author,
+        coverUrl: coverUrl ? this.resolveUrl(coverUrl, baseUrl) : undefined,
+        url,
+        sourceId: source.id!,
+        sourceName: source.name,
+        description: $(element).find('.description').text().trim() || undefined
+      });
+    });
+    
+    return results;
+  }
+
+  /**
+   * 解析阅读 APP（Legado）格式的搜索结果
+   */
+  private parseLegadoSearchResults($: cheerio.CheerioAPI, source: BookSource, baseUrl: string): SearchResult[] {
+    const results: SearchResult[] = [];
+    const rule = source.ruleSearch!;
+    
+    // 解析书籍列表
+    $(rule.bookList).each((_, element) => {
+      const title = $(element).find(rule.name).text().trim();
+      const author = $(element).find(rule.author).text().trim();
+      
+      // 跳过无效结果
+      if (!title || !author) return;
+      
+      const coverUrl = $(element).find(rule.coverUrl).attr('src');
+      const url = this.resolveUrl($(element).find(rule.bookUrl).attr('href'), baseUrl);
+      const intro = rule.intro ? $(element).find(rule.intro).text().trim() : undefined;
+      
+      results.push({
+        title,
+        author,
+        coverUrl: coverUrl ? this.resolveUrl(coverUrl, baseUrl) : undefined,
+        url,
+        sourceId: source.id!,
+        sourceName: source.name,
+        description: intro
+      });
+    });
+    
+    return results;
+  }
+
+  /**
    * 获取书籍详情
    * 
    * @param source - 书源配置
@@ -121,19 +180,48 @@ export class CrawlerService {
    */
   async getBookDetail(source: BookSource, bookUrl: string): Promise<Partial<Book>> {
     try {
-      const html = await this.fetchHtml(bookUrl, source.baseUrl);
+      const baseUrl = source.baseUrl || source.bookSourceUrl || '';
+      const html = await this.fetchHtml(bookUrl, baseUrl);
       const $ = cheerio.load(html);
       
-      return {
-        title: $(source.selectors.bookTitle).text().trim(),
-        author: $(source.selectors.bookAuthor).text().trim(),
-        coverUrl: this.resolveUrl($(source.selectors.bookCover).attr('src'), source.baseUrl),
-        description: $('.description').text().trim()
-      };
+      // 支持两种格式
+      if (source.ruleBookInfo) {
+        return this.parseLegadoBookDetail($, source, baseUrl);
+      } else if (source.selectors) {
+        return this.parseStandardBookDetail($, source, baseUrl);
+      } else {
+        throw new Error('书源缺少选择器配置');
+      }
     } catch (error) {
       console.error('[Crawler] 获取书籍详情失败:', error);
       throw error;
     }
+  }
+
+  /**
+   * 解析标准格式的书籍详情
+   */
+  private parseStandardBookDetail($: cheerio.CheerioAPI, source: BookSource, baseUrl: string): Partial<Book> {
+    const selectors = source.selectors!;
+    return {
+      title: $(selectors.bookTitle).text().trim(),
+      author: $(selectors.bookAuthor).text().trim(),
+      coverUrl: this.resolveUrl($(selectors.bookCover).attr('src'), baseUrl),
+      description: $('.description').text().trim()
+    };
+  }
+
+  /**
+   * 解析阅读 APP（Legado）格式的书籍详情
+   */
+  private parseLegadoBookDetail($: cheerio.CheerioAPI, source: BookSource, baseUrl: string): Partial<Book> {
+    const rule = source.ruleBookInfo!;
+    return {
+      title: $(rule.name).text().trim(),
+      author: $(rule.author).text().trim(),
+      coverUrl: this.resolveUrl($(rule.coverUrl).attr('src'), baseUrl),
+      description: $(rule.intro).text().trim()
+    };
   }
 
   /**
@@ -147,36 +235,80 @@ export class CrawlerService {
    * 1. 获取章节列表页 HTML
    * 2. 解析所有章节链接
    * 3. 按 DOM 顺序返回（通常已经是正序）
+   * 4. 支持两种格式
    */
   async getChapters(source: BookSource, chapterListUrl: string): Promise<Chapter[]> {
     try {
-      const html = await this.fetchHtml(chapterListUrl, source.baseUrl);
+      const baseUrl = source.baseUrl || source.bookSourceUrl || '';
+      const html = await this.fetchHtml(chapterListUrl, baseUrl);
       const $ = cheerio.load(html);
       
-      const chapters: Chapter[] = [];
-      $(source.selectors.chapters).each((index, element) => {
-        const title = $(element).find(source.selectors.chapterTitle).text().trim();
-        const url = $(element).find(source.selectors.chapterUrl).attr('href');
-        
-        if (!title || !url) return;
-        
-        chapters.push({
-          bookId: 0, // 临时值，保存时会被替换
-          title,
-          url: this.resolveUrl(url, source.baseUrl),
-          order: index,
-          wordCount: 0,
-          createdAt: Date.now()
-        });
-      });
-      
-      console.log(`[Crawler] 获取到 ${chapters.length} 个章节`);
-      return chapters;
-      
+      // 支持两种格式
+      if (source.ruleToc) {
+        return this.parseLegadoChapters($, source, baseUrl);
+      } else if (source.selectors) {
+        return this.parseStandardChapters($, source, baseUrl);
+      } else {
+        throw new Error('书源缺少选择器配置');
+      }
     } catch (error) {
       console.error('[Crawler] 获取章节列表失败:', error);
       throw error;
     }
+  }
+
+  /**
+   * 解析标准格式的章节列表
+   */
+  private parseStandardChapters($: cheerio.CheerioAPI, source: BookSource, baseUrl: string): Chapter[] {
+    const selectors = source.selectors!;
+    const chapters: Chapter[] = [];
+    
+    $(selectors.chapters).each((index, element) => {
+      const title = $(element).find(selectors.chapterTitle).text().trim();
+      const url = $(element).find(selectors.chapterUrl).attr('href');
+      
+      if (!title || !url) return;
+      
+      chapters.push({
+        bookId: 0,
+        title,
+        url: this.resolveUrl(url, baseUrl),
+        order: index,
+        wordCount: 0,
+        createdAt: Date.now()
+      });
+    });
+    
+    console.log(`[Crawler] 获取到 ${chapters.length} 个章节`);
+    return chapters;
+  }
+
+  /**
+   * 解析阅读 APP（Legado）格式的章节列表
+   */
+  private parseLegadoChapters($: cheerio.CheerioAPI, source: BookSource, baseUrl: string): Chapter[] {
+    const rule = source.ruleToc!;
+    const chapters: Chapter[] = [];
+    
+    $(rule.chapterList).each((index, element) => {
+      const title = $(element).find(rule.chapterName).text().trim();
+      const url = $(element).find(rule.chapterUrl).attr('href');
+      
+      if (!title || !url) return;
+      
+      chapters.push({
+        bookId: 0,
+        title,
+        url: this.resolveUrl(url, baseUrl),
+        order: index,
+        wordCount: 0,
+        createdAt: Date.now()
+      });
+    });
+    
+    console.log(`[Crawler] 获取到 ${chapters.length} 个章节`);
+    return chapters;
   }
 
   /**
@@ -188,11 +320,19 @@ export class CrawlerService {
    */
   async getContent(source: BookSource, chapterUrl: string): Promise<string> {
     try {
-      const html = await this.fetchHtml(chapterUrl, source.baseUrl);
+      const html = await this.fetchHtml(chapterUrl, source.baseUrl || source.bookSourceUrl);
       const $ = cheerio.load(html);
       
-      // 提取正文内容
-      const content = $(source.selectors.content).html();
+      // 支持两种格式
+      let content: string | undefined;
+      
+      if (source.ruleContent) {
+        content = this.parseLegadoContent($, source.ruleContent);
+      } else if (source.selectors) {
+        content = $(source.selectors.content).html() || undefined;
+      } else {
+        throw new Error('书源缺少选择器配置');
+      }
       
       if (!content) {
         throw new Error('无法解析章节内容');
@@ -204,6 +344,29 @@ export class CrawlerService {
       console.error('[Crawler] 获取章节内容失败:', error);
       throw error;
     }
+  }
+
+  /**
+   * 解析阅读 APP（Legado）格式的章节内容
+   */
+  private parseLegadoContent($: cheerio.CheerioAPI, rule: { content: string, replace?: string[] }): string {
+    const content = $(rule.content).html();
+    
+    if (!content) {
+      return '';
+    }
+    
+    // 应用替换规则（如果有）
+    if (rule.replace && rule.replace.length > 0) {
+      let processed = content;
+      for (const replaceRule of rule.replace) {
+        // 简单的字符串替换，复杂规则需要更高级的解析
+        processed = processed.replace(new RegExp(replaceRule, 'g'), '');
+      }
+      return processed;
+    }
+    
+    return content;
   }
 
   /**
