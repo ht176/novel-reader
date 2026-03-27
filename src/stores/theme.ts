@@ -76,6 +76,9 @@ export const useThemeStore = defineStore('theme', () => {
   function applyTheme(theme: 'light' | 'dark' | 'sepia') {
     const root = document.documentElement;
     
+    // 添加过渡动画类
+    root.classList.add('theme-transition');
+    
     // 移除旧主题类
     root.classList.remove('theme-light', 'theme-dark', 'theme-sepia');
     
@@ -84,6 +87,11 @@ export const useThemeStore = defineStore('theme', () => {
     
     // 设置主题相关的 CSS 变量
     updateThemeVariables(theme);
+    
+    // 动画结束后移除过渡类（避免影响其他动画）
+    setTimeout(() => {
+      root.classList.remove('theme-transition');
+    }, 300);
   }
 
   /**

@@ -31,6 +31,36 @@
           </div>
           
           <div class="setting-item">
+            <label class="setting-label">字体类型</label>
+            <div class="button-group">
+              <button 
+                :class="['size-btn', { active: defaultFontFamily === 'system' }]"
+                @click="defaultFontFamily = 'system'"
+              >
+                默认
+              </button>
+              <button 
+                :class="['size-btn', { active: defaultFontFamily === 'serif' }]"
+                @click="defaultFontFamily = 'serif'"
+              >
+                宋体
+              </button>
+              <button 
+                :class="['size-btn', { active: defaultFontFamily === 'heiti' }]"
+                @click="defaultFontFamily = 'heiti'"
+              >
+                黑体
+              </button>
+              <button 
+                :class="['size-btn', { active: defaultFontFamily === 'kaiti' }]"
+                @click="defaultFontFamily = 'kaiti'"
+              >
+                楷体
+              </button>
+            </div>
+          </div>
+          
+          <div class="setting-item">
             <label class="setting-label">字体大小调节</label>
             <div class="font-size-controls flex items-center gap-3">
               <button @click="decreaseFontSize" class="btn btn-outline" :disabled="defaultFontSize <= 12">
@@ -90,6 +120,22 @@
         <section class="settings-section">
           <h2 class="section-title">💾 数据管理</h2>
           
+          <!-- 缓存状态 -->
+          <div class="setting-item cache-status">
+            <div class="cache-info">
+              <label class="setting-label">缓存状态</label>
+              <div v-if="cacheLoading" class="cache-loading">加载中...</div>
+              <div v-else class="cache-details">
+                <span class="cache-item">📖 章节：{{ cacheStats.chapterCount }}</span>
+                <span class="cache-item">🔍 搜索：{{ cacheStats.searchCount }}</span>
+                <span class="cache-item">💾 大小：{{ formatCacheSize(cacheStats.totalSize) }}</span>
+              </div>
+            </div>
+            <button @click="loadCacheStats" class="btn btn-outline" :disabled="cacheLoading">
+              🔄 刷新
+            </button>
+          </div>
+          
           <div class="setting-item">
             <label class="setting-label">备份数据</label>
             <button @click="backupData" class="btn btn-primary">
@@ -113,7 +159,7 @@
           
           <div class="setting-item">
             <label class="setting-label">清除缓存</label>
-            <button @click="clearCache" class="btn btn-danger">
+            <button @click="confirmClearCache" class="btn btn-danger">
               🗑️ 清除
             </button>
           </div>
@@ -305,6 +351,7 @@ import { ref, reactive, onMounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { db } from '@/db';
 import { useThemeStore, type ThemeType } from '@/stores/theme';
+import { cache } from '@/services/cache';
 
 // ============ 状态管理 ============
 const router = useRouter();
@@ -316,7 +363,17 @@ const themeStore = useThemeStore();
 const defaultFontSize = ref<number>(16);
 const defaultTheme = ref<ThemeType>('light');
 const defaultLineHeight = ref<string>('1.8');
-const version = ref<string>('v0.1.0');
+const defaultFontFamily = ref<string>('system');
+const version = ref<string>('v0.2.0');
+
+// 缓存状态
+const cacheStats = ref({
+  totalItems: 0,
+  chapterCount: 0,
+  searchCount: 0,
+  totalSize: 0
+});
+const cacheLoading = ref(false);
 
 // 文件输入引用
 const restoreInput = ref<HTMLInputElement | null>(null);
@@ -370,10 +427,30 @@ function loadSettings() {
   const savedFontSize = localStorage.getItem('reader-fontSize');
   const savedTheme = localStorage.getItem('reader-theme');
   const savedLineHeight = localStorage.getItem('reader-lineHeight');
+  const savedFontFamily = localStorage.getItem('reader-fontFamily');
   
   if (savedFontSize) defaultFontSize.value = parseInt(savedFontSize);
   if (savedTheme) defaultTheme.value = savedTheme as any;
   if (savedLineHeight) defaultLineHeight.value = savedLineHeight;
+  if (savedFontFamily) defaultFontFamily.value = savedFontFamily;
+  
+  // 加载缓存统计
+  loadCacheStats();
+}
+
+/**
+ * 加载缓存统计
+ */
+async function loadCacheStats() {
+  cacheLoading.value = true;
+  try {
+    const stats = await cache.getCacheStats();
+    cacheStats.value = stats;
+  } catch (error) {
+    console.error('[SettingsView] 加载缓存统计失败:', error);
+  } finally {
+    cacheLoading.value = false;
+  }
 }
 
 /**
@@ -383,6 +460,7 @@ function saveSettings() {
   localStorage.setItem('reader-fontSize', String(defaultFontSize.value));
   localStorage.setItem('reader-theme', defaultTheme.value);
   localStorage.setItem('reader-lineHeight', defaultLineHeight.value);
+  localStorage.setItem('reader-fontFamily', defaultFontFamily.value);
 }
 
 /**
@@ -481,10 +559,33 @@ function triggerRestore() {
 /**
  * 清除缓存
  */
+/**
+ * 确认清除缓存
+ */
+function confirmClearCache() {
+  if (confirm('确定要清除所有缓存吗？\n\n这将删除所有已缓存的章节和搜索结果，但不会影响书架上的书籍。')) {
+    clearCache();
+  }
+}
+
+/**
+ * 格式化缓存大小
+ */
+function formatCacheSize(bytes: number): string {
+  if (bytes < 1024) {
+    return bytes + ' B';
+  } else if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(2) + ' KB';
+  } else {
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+}
+
 async function clearCache() {
   try {
-    await db.cache.clear();
+    await cache.clearAll();
     alert('✅ 缓存清除成功！');
+    await loadCacheStats();
   } catch (error) {
     alert(`❌ 清除失败: ${(error as Error).message}`);
     console.error('[SettingsView] 清除缓存失败:', error);
@@ -1243,3 +1344,41 @@ watch([defaultFontSize, defaultLineHeight], saveSettings);
   }
 }
 </style>
+
+/* ═══════════════════════════════════════════════════════════
+   缓存状态样式
+   ═══════════════════════════════════════════════════════════ */
+
+.cache-status {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  background: var(--color-neutral-50);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+}
+
+.cache-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.cache-details {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.cache-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.cache-loading {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}

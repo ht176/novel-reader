@@ -225,6 +225,7 @@ import { useRouter } from 'vue-router';
 import { db, type BookSource } from '@/db';
 import { crawler, type SearchResult } from '@/services/crawler';
 import { useBookStore } from '@/stores/books';
+import { cache } from '@/services/cache';
 
 // ============ 状态管理 ============
 const bookStore = useBookStore();
@@ -271,9 +272,12 @@ async function loadSources() {
  * 执行搜索
  * 
  * 逻辑说明：
- * 1. 根据选择的书源搜索
- * 2. 如果选择"全部书源"，则并行搜索所有启用的书源
- * 3. 合并结果并去重
+ * 1. 先检查搜索缓存（5 分钟内相同关键词不重复请求）
+ * 2. 根据选择的书源搜索
+ * 3. 如果选择"全部书源"，则并行搜索所有启用的书源
+ * 4. 合并结果并去重
+ * 5. 缓存搜索结果
+ * 6. 支持 10 秒超时处理
  */
 async function search() {
   if (!searchKeyword.value.trim()) {
@@ -287,6 +291,15 @@ async function search() {
   searched.value = true;
   
   try {
+    // 1. 先检查缓存
+    const cachedResults = await cache.getCachedSearchResults(searchKeyword.value);
+    if (cachedResults && cachedResults.length > 0) {
+      console.log('[LibraryView] 使用缓存的搜索结果');
+      searchResults.value = cachedResults;
+      searching.value = false;
+      return;
+    }
+    
     let sources: BookSource[] = [];
     
     if (selectedSourceId.value === 0) {
@@ -304,12 +317,17 @@ async function search() {
       throw new Error('没有可用的书源');
     }
     
-    // 并行搜索所有书源
-    const results = await Promise.allSettled(
-      sources.map(source => crawler.search(source, searchKeyword.value))
+    // 2. 并行搜索所有书源（带超时处理）
+    const searchPromises = sources.map(source => 
+      Promise.race([
+        crawler.search(source, searchKeyword.value),
+        timeoutPromise<SearchResult[]>(10000, `书源 "${source.name}" 搜索超时`)
+      ])
     );
     
-    // 收集成功结果
+    const results = await Promise.allSettled(searchPromises);
+    
+    // 3. 收集成功结果
     const allResults: SearchResult[] = [];
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
@@ -320,7 +338,7 @@ async function search() {
       }
     });
     
-    // 去重（根据书名 + 作者）
+    // 4. 去重（根据书名 + 作者）
     const uniqueResults = allResults.filter((result, index, self) => 
       index === self.findIndex(r => 
         r.title === result.title && r.author === result.author
@@ -328,6 +346,11 @@ async function search() {
     );
     
     searchResults.value = uniqueResults;
+    
+    // 5. 缓存搜索结果
+    if (uniqueResults.length > 0) {
+      await cache.cacheSearchResults(searchKeyword.value, uniqueResults);
+    }
     
     if (uniqueResults.length === 0) {
       error.value = '未找到相关书籍，试试其他关键词';
@@ -339,6 +362,15 @@ async function search() {
   } finally {
     searching.value = false;
   }
+}
+
+/**
+ * 创建超时 Promise
+ */
+function timeoutPromise<T>(ms: number, message: string): Promise<T> {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(message)), ms);
+  });
 }
 
 /**

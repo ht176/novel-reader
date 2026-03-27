@@ -286,3 +286,33 @@
   outline: 2px solid var(--color-primary-500);
   outline-offset: 2px;
 }
+
+/* 主题过渡动画 */
+.theme-transition,
+.theme-transition * {
+  transition: background-color var(--duration-300) var(--ease-in-out),
+              color var(--duration-300) var(--ease-in-out),
+              border-color var(--duration-300) var(--ease-in-out),
+              box-shadow var(--duration-300) var(--ease-in-out);
+}
+
+/* 字体类型定义 */
+.font-system {
+  font-family: var(--font-sans);
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+.font-songti {
+  font-family: 'Songti SC', 'SimSun', 'STSong', serif;
+}
+
+.font-heiti {
+  font-family: 'Heiti SC', 'SimHei', 'STHeiti', sans-serif;
+}
+
+.font-kaiti {
+  font-family: 'Kaiti SC', 'KaiTi', 'STKaiti', serif;
+}

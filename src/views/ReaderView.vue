@@ -91,17 +91,57 @@
           </header>
           
           <div class="menu-body scrollbar-thin">
+            <!-- 离线提示 -->
+            <section v-if="isOffline" class="menu-section offline-notice">
+              <div class="notice-content">
+                <span class="notice-icon">📴</span>
+                <span class="notice-text">离线模式 - 仅显示已缓存章节</span>
+              </div>
+            </section>
+            
             <!-- 字体大小 -->
             <section class="menu-section">
               <label class="menu-label">字体大小</label>
-              <div class="size-buttons">
+              <div class="font-size-controls flex items-center gap-3">
+                <button @click="decreaseFontSize" class="btn btn-outline" :disabled="fontSize <= 12">
+                  −
+                </button>
+                <span class="font-size-display text-center" style="min-width: 60px;">
+                  {{ fontSize }}px
+                </span>
+                <button @click="increaseFontSize" class="btn btn-outline" :disabled="fontSize >= 24">
+                  +
+                </button>
+              </div>
+            </section>
+            
+            <!-- 字体类型 -->
+            <section class="menu-section">
+              <label class="menu-label">字体类型</label>
+              <div class="font-type-buttons">
                 <button 
-                  v-for="size in [14, 16, 18, 20]"
-                  :key="size"
-                  :class="['size-btn', { active: fontSize === size }]"
-                  @click="fontSize = size"
+                  :class="['font-type-btn', { active: fontFamily === 'system' }]"
+                  @click="fontFamily = 'system'"
                 >
-                  {{ size === 14 ? '小' : size === 16 ? '中' : size === 18 ? '大' : '超大' }}
+                  默认
+                </button>
+                <button 
+                  :class="['font-type-btn', { active: fontFamily === 'serif' }]"
+                  @click="fontFamily = 'serif'"
+                >
+                  宋体
+                </button>
+                <button 
+                  :class="['font-type-btn', { active: fontFamily === 'heiti' }]"
+                  @click="fontFamily = 'heiti'"
+                >
+                  黑体
+                </button>
+                <button 
+                  :class="['font-type-btn', { active: fontFamily === 'kaiti' }]"
+                  @click="fontFamily = 'kaiti'"
+                >
+                  楷体
                 </button>
               </div>
             </section>
@@ -112,21 +152,27 @@
               <div class="theme-buttons">
                 <button 
                   :class="['theme-btn', { active: theme === 'light' }]"
-                  @click="theme = 'light'"
+                  @click="setTheme('light')"
                 >
                   ☀️ 日间
                 </button>
                 <button 
                   :class="['theme-btn', { active: theme === 'dark' }]"
-                  @click="theme = 'dark'"
+                  @click="setTheme('dark')"
                 >
                   🌙 夜间
                 </button>
                 <button 
                   :class="['theme-btn', { active: theme === 'sepia' }]"
-                  @click="theme = 'sepia'"
+                  @click="setTheme('sepia')"
                 >
                   📜 护眼
+                </button>
+                <button 
+                  :class="['theme-btn', { active: theme === 'auto' }]"
+                  @click="setTheme('auto')"
+                >
+                  🤖 自动
                 </button>
               </div>
             </section>
@@ -204,6 +250,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { useBreakpoints } from '@vueuse/core';
 import { db, type Book, type Chapter } from '@/db';
 import { useReadingStatsStore } from '@/stores/reading-stats';
+import { useThemeStore, type ThemeType } from '@/stores/theme';
+import { cache } from '@/services/cache';
 
 // ============ 路由 ============
 const route = useRoute();
@@ -230,10 +278,18 @@ const startTime = ref<number>(0); // 开始阅读时间戳
 const sessionReadTime = ref<number>(0); // 当前会话阅读时间（秒）
 const statsStore = useReadingStatsStore();
 
+// ============ 主题 Store ============
+const themeStore = useThemeStore();
+
 // ============ 阅读设置 (从 localStorage 读取) ============
 const fontSize = ref<number>(parseInt(localStorage.getItem('reader-fontSize') || '16'));
-const theme = ref<'light' | 'dark' | 'sepia'>((localStorage.getItem('reader-theme') as any) || 'light');
+const theme = ref<ThemeType>((localStorage.getItem('reader-theme') as ThemeType) || 'auto');
 const lineHeight = ref<number>(parseFloat(localStorage.getItem('reader-lineHeight') || '1.8'));
+const fontFamily = ref<string>(localStorage.getItem('reader-fontFamily') || 'system');
+const isOffline = ref<boolean>(!navigator.onLine);
+
+// 网络状态监听
+let unsubscribeNetwork: (() => void) | null = null;
 
 // ============ 计算属性 ============
 const totalChapters = computed(() => chapters.value.length);
@@ -250,13 +306,41 @@ const themeClass = computed(() => ({
 
 const contentStyle = computed(() => ({
   fontSize: `${fontSize.value}px`,
-  lineHeight: String(lineHeight.value)
+  lineHeight: String(lineHeight.value),
+  fontFamily: getFontFamilyValue(fontFamily.value)
 }));
+
+/**
+ * 获取字体类型对应的 CSS 值
+ */
+function getFontFamilyValue(type: string): string {
+  switch (type) {
+    case 'serif':
+      return "'Songti SC', 'SimSun', 'STSong', serif";
+    case 'heiti':
+      return "'Heiti SC', 'SimHei', 'STHeiti', sans-serif";
+    case 'kaiti':
+      return "'Kaiti SC', 'KaiTi', 'STKaiti', serif";
+    default:
+      return "var(--font-sans)";
+  }
+}
 
 // ============ 生命周期 ============
 onMounted(async () => {
+  // 初始化主题 Store
+  themeStore.initialize();
+  
+  // 同步主题 Store 的状态
+  theme.value = themeStore.currentTheme;
+  
   await loadBook();
   window.addEventListener('keydown', handleKeydown);
+  
+  // 监听网络状态变化
+  unsubscribeNetwork = cache.onNetworkChange((online) => {
+    isOffline.value = !online;
+  });
   
   // 开始记录阅读时间
   startTime.value = Date.now();
@@ -265,6 +349,11 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown);
   saveSettings();
+  
+  // 取消网络状态监听
+  if (unsubscribeNetwork) {
+    unsubscribeNetwork();
+  }
   
   // 记录本次阅读时间
   if (currentBook.value?.id && startTime.value > 0) {
@@ -364,6 +453,21 @@ async function loadChapter() {
     
     currentChapter.value = chapter;
     
+    // 尝试从缓存加载
+    const cachedContent = await cache.getCachedChapter(currentBook.value!.id!, chapter.id!);
+    
+    if (cachedContent) {
+      // 使用缓存内容
+      currentChapter.value = {
+        ...chapter,
+        content: cachedContent
+      };
+      console.log('[ReaderView] 从缓存加载章节:', chapter.title);
+    } else {
+      // 从网络加载
+      await fetchChapterContent(chapter);
+    }
+    
     // 滚动到顶部
     if (contentRef.value) {
       contentRef.value.scrollTop = 0;
@@ -372,11 +476,52 @@ async function loadChapter() {
     // 保存进度
     await saveProgress();
     
+    // 预加载邻近章节
+    await preloadNearbyChapters();
+    
   } catch (err) {
     error.value = err instanceof Error ? err.message : '加载失败';
     console.error('[ReaderView] 加载章节失败:', err);
   } finally {
     loading.value = false;
+  }
+}
+
+/**
+ * 获取章节内容（从书源）
+ */
+async function fetchChapterContent(chapter: Chapter) {
+  if (!currentBook.value?.sourceId || !chapter.url) {
+    throw new Error('无法获取章节内容');
+  }
+  
+  // TODO: 从书源获取内容
+  // 这里简化处理，实际应该调用 crawler.getContent
+  console.log('[ReaderView] 获取章节内容:', chapter.title);
+}
+
+/**
+ * 预加载邻近章节（前后各 3 章）
+ */
+async function preloadNearbyChapters() {
+  if (!currentBook.value?.id) return;
+  
+  try {
+    await cache.preloadChapters(
+      chapters.value,
+      currentChapterOrder.value,
+      currentBook.value.id,
+      async (chapter) => {
+        // 预加载时获取章节内容
+        if (chapter.url && currentBook.value?.sourceId) {
+          // TODO: 调用 crawler.getContent
+          return '';
+        }
+        return '';
+      }
+    );
+  } catch (error) {
+    console.warn('[ReaderView] 预加载章节失败:', error);
   }
 }
 
@@ -417,12 +562,39 @@ async function saveProgress() {
 }
 
 /**
+ * 设置主题
+ */
+function setTheme(newTheme: ThemeType) {
+  theme.value = newTheme;
+  themeStore.setTheme(newTheme);
+}
+
+/**
+ * 减小字体大小
+ */
+function decreaseFontSize() {
+  if (fontSize.value > 12) {
+    fontSize.value -= 2;
+  }
+}
+
+/**
+ * 增大字体大小
+ */
+function increaseFontSize() {
+  if (fontSize.value < 24) {
+    fontSize.value += 2;
+  }
+}
+
+/**
  * 保存设置
  */
 function saveSettings() {
   localStorage.setItem('reader-fontSize', String(fontSize.value));
   localStorage.setItem('reader-theme', theme.value);
   localStorage.setItem('reader-lineHeight', String(lineHeight.value));
+  localStorage.setItem('reader-fontFamily', fontFamily.value);
 }
 
 /**
@@ -795,6 +967,31 @@ function handleKeydown(event: KeyboardEvent) {
   margin-bottom: 0;
 }
 
+/* 离线提示 */
+.offline-notice {
+  background: var(--color-warning);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.notice-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: white;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.notice-icon {
+  font-size: var(--text-lg);
+}
+
+.notice-text {
+  flex: 1;
+}
+
 .menu-label {
   display: block;
   font-size: var(--text-sm);
@@ -803,14 +1000,27 @@ function handleKeydown(event: KeyboardEvent) {
   margin-bottom: var(--space-3);
 }
 
-/* 字体大小按钮 */
-.size-buttons {
+/* 字体大小控制 */
+.font-size-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.font-size-display {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  color: var(--reader-text);
+}
+
+/* 字体类型按钮 */
+.font-type-buttons {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-2);
 }
 
-.size-btn {
+.font-type-btn {
   padding: var(--space-3);
   background: var(--color-neutral-100);
   border: 2px solid transparent;
@@ -822,11 +1032,11 @@ function handleKeydown(event: KeyboardEvent) {
   transition: all var(--duration-200) var(--ease-in-out);
 }
 
-.size-btn:hover {
+.font-type-btn:hover {
   background: var(--color-neutral-200);
 }
 
-.size-btn.active {
+.font-type-btn.active {
   background: var(--color-primary-500);
   color: white;
   border-color: var(--color-primary-500);
