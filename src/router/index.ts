@@ -65,6 +65,12 @@ const router = createRouter({
       name: 'calibre',
       component: () => import('@/views/CalibreView.vue'),
       meta: { title: 'Calibre 图书库' }
+    },
+    {
+      path: '/backup',
+      name: 'backup',
+      component: () => import('@/views/BackupView.vue'),
+      meta: { title: '数据备份' }
     }
   ]
 });

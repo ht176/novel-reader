@@ -104,6 +104,15 @@
               </button>
             </div>
           </div>
+
+          <!-- 数据备份入口 -->
+          <div class="setting-item">
+            <label class="setting-label">📤 数据备份</label>
+            <button @click="$router.push('/backup')" class="btn btn-primary w-full">
+              备份和恢复数据
+            </button>
+            <p class="setting-hint">导出书籍、阅读进度和设置，或从备份恢复</p>
+          </div>
           
           <div class="setting-item">
             <label class="setting-label">默认行间距</label>
