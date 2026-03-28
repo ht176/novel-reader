@@ -3,6 +3,12 @@
     <div class="calibre-header">
       <h1>📚 Calibre 图书库</h1>
       <p class="subtitle">连接你的 Calibre 图书服务器，导入书籍到本地书架</p>
+      <div class="mock-mode-toggle">
+        <label>
+          <input type="checkbox" v-model="useMockMode" @change="toggleMockMode" />
+          🧪 模拟模式（测试用）
+        </label>
+      </div>
     </div>
 
     <!-- 配置区域 -->
@@ -214,6 +220,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { calibreService, type CalibreBook, type CalibreConfig } from '@/services/calibre';
+import { enableMockMode } from '@/services/calibre-mock';
 import { useBookStore } from '@/stores/books';
 
 const bookStore = useBookStore();
@@ -225,6 +232,7 @@ const connectionOk = ref(false);
 const connectionError = ref('');
 const loading = ref(false);
 const importingBooks = ref(new Set<number>());
+const useMockMode = ref(false);
 
 // 配置
 const config = reactive<CalibreConfig>({
@@ -271,6 +279,20 @@ onMounted(() => {
     isConnected.value = true;
   }
 });
+
+// 切换模拟模式
+const toggleMockMode = () => {
+  if (useMockMode.value) {
+    enableMockMode();
+    // 模拟模式下自动连接
+    isConnected.value = true;
+    connectionOk.value = true;
+    alert('🧪 模拟模式已启用\n\n已加载 8 本测试书籍，可以测试搜索、浏览和导入功能');
+    loadAllBooks();
+  } else {
+    window.location.reload();
+  }
+};
 
 // 测试连接
 const testConnection = async () => {
@@ -436,6 +458,23 @@ const importBook = async (book: CalibreBook) => {
 .subtitle {
   color: var(--text-secondary);
   font-size: 0.95rem;
+}
+
+.mock-mode-toggle {
+  margin-top: 12px;
+  font-size: 0.9rem;
+}
+
+.mock-mode-toggle label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.mock-mode-toggle input[type="checkbox"] {
+  cursor: pointer;
 }
 
 /* 配置区域 */
