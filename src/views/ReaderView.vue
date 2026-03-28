@@ -177,6 +177,17 @@
               </div>
             </section>
             
+            <!-- 听书功能 -->
+            <section class="menu-section">
+              <label class="menu-label">🎵 听书模式</label>
+              <button @click="showTTSPanel = true" class="btn btn-primary w-full">
+                🔊 开始朗读
+              </button>
+              <p class="menu-hint" v-if="!isTTSSupported">
+                ⚠️ 您的浏览器不支持 TTS 功能
+              </p>
+            </section>
+            
             <!-- 行间距 -->
             <section class="menu-section">
               <label class="menu-label">行间距</label>
@@ -224,6 +235,13 @@
         </aside>
       </div>
     </transition>
+
+    <!-- TTS 控制组件 -->
+    <TTSControl 
+      v-if="currentChapter"
+      :content="currentChapter.content"
+      :chapter-title="currentChapter.title || ''"
+    />
   </article>
 </template>
 
@@ -252,6 +270,8 @@ import { db, type Book, type Chapter } from '@/db';
 import { useReadingStatsStore } from '@/stores/reading-stats';
 import { useThemeStore, type ThemeType } from '@/stores/theme';
 import { cache } from '@/services/cache';
+import { ttsService } from '@/services/tts';
+import TTSControl from '@/components/TTSControl.vue';
 
 // ============ 路由 ============
 const route = useRoute();
@@ -287,6 +307,10 @@ const theme = ref<ThemeType>((localStorage.getItem('reader-theme') as ThemeType)
 const lineHeight = ref<number>(parseFloat(localStorage.getItem('reader-lineHeight') || '1.8'));
 const fontFamily = ref<string>(localStorage.getItem('reader-fontFamily') || 'system');
 const isOffline = ref<boolean>(!navigator.onLine);
+
+// TTS 状态
+const showTTSPanel = ref(false);
+const isTTSSupported = ref(ttsService.isSupported());
 
 // 网络状态监听
 let unsubscribeNetwork: (() => void) | null = null;
