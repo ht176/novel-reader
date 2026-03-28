@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TTS 功能测试</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .test-content {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      line-height: 1.8;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #4CAF50;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #45a049;
+    }
+    .btn-secondary {
+      background: #2196F3;
+      color: white;
+    }
+    .btn-secondary:hover {
+      background: #1976D2;
+    }
+    .btn-danger {
+      background: #f44336;
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #d32f2f;
+    }
+    .setting {
+      margin: 15px 0;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    select, input[type="range"] {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+    }
+    .status {
+      margin: 20px 0;
+      padding: 15px;
+      background: #e3f2fd;
+      border-radius: 8px;
+      color: #1976D2;
+    }
+    .progress {
+      width: 100%;
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 15px 0;
+    }
+    .progress-bar {
+      height: 100%;
+      background: #4CAF50;
+      width: 0%;
+      transition: width 0.3s;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎵 TTS 功能测试页面</h1>
+    
+    <div class="status" id="status">
+      状态：就绪
+    </div>
+
+    <div class="controls">
+      <button class="btn-primary" onclick="startTTS()">▶️ 开始朗读</button>
+      <button class="btn-secondary" onclick="pauseTTS()">⏸️ 暂停</button>
+      <button class="btn-secondary" onclick="resumeTTS()">▶️ 继续</button>
+      <button class="btn-danger" onclick="stopTTS()">⏹️ 停止</button>
+    </div>
+
+    <div class="setting">
+      <label for="voice">语音：</label>
+      <select id="voice" onchange="updateVoice()"></select>
+    </div>
+
+    <div class="setting">
+      <label for="rate">语速：<span id="rate-value">1.0</span>x</label>
+      <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1" oninput="updateRate()">
+    </div>
+
+    <div class="setting">
+      <label for="pitch">音调：<span id="pitch-value">1.0</span></label>
+      <input type="range" id="pitch" min="0" max="2" step="0.1" value="1" oninput="updatePitch()">
+    </div>
+
+    <div class="setting">
+      <label>定时关闭：</label>
+      <div class="controls">
+        <button class="btn-secondary" onclick="setTimer(15)">15 分钟</button>
+        <button class="btn-secondary" onclick="setTimer(30)">30 分钟</button>
+        <button class="btn-secondary" onclick="setTimer(60)">60 分钟</button>
+        <button class="btn-danger" onclick="cancelTimer()">关闭</button>
+      </div>
+    </div>
+
+    <div class="progress">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+
+    <div class="test-content">
+      <h2>测试文本内容</h2>
+      <p>欢迎使用小说阅读器的听书功能！本功能可以将文字转换为语音，让您在忙碌的时候也能"听"小说。</p>
+      <p>TTS（Text-to-Speech）技术是一种将文本转换为语音的技术。我们的阅读器使用了浏览器自带的 Web Speech API，无需额外的服务即可实现语音朗读功能。</p>
+      <p>使用听书功能非常简单：打开任意一本书籍，点击右上角的菜单按钮，选择"🎵 听书模式"，然后点击"开始朗读"按钮。您还可以在 TTS 控制面板中调整语速、音调和选择不同的语音。祝您使用愉快！</p>
+      <p>我们的 TTS 功能具有以下特性：多语音支持、语速调节、音调调节、定时关闭、进度跟踪。系统会自动检测可用的语音，并优先选择中文语音。支持 0.5 倍到 2.0 倍的语速调节，找到最适合您的朗读速度。支持 0 到 2 的音调调节，改变声音的高低。支持 15 分钟、30 分钟、60 分钟的定时关闭功能，适合睡前听书。</p>
+    </div>
+  </div>
+
+  <script>
+    const synth = window.speechSynthesis;
+    let utterance = null;
+    let timerId = null;
+
+    // 检查浏览器支持
+    if (!synth) {
+      document.getElementById('status').innerHTML = '❌ 您的浏览器不支持 TTS 功能';
+      alert('您的浏览器不支持 TTS 功能，请使用 Chrome、Edge 或 Safari 浏览器');
+    }
+
+    // 加载可用语音
+    function loadVoices() {
+      const voices = synth.getVoices();
+      const voiceSelect = document.getElementById('voice');
+      voiceSelect.innerHTML = '';
+      
+      // 优先显示中文语音
+      const zhVoices = voices.filter(v => v.lang.startsWith('zh') || v.lang.startsWith('cn'));
+      const otherVoices = voices.filter(v => !v.lang.startsWith('zh') && !v.lang.startsWith('cn'));
+      
+      [...zhVoices, ...otherVoices].forEach((voice, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `${voice.name} (${voice.lang})`;
+        if (voice.default) option.selected = true;
+        voiceSelect.appendChild(option);
+      });
+
+      console.log(`[TTS] 加载了 ${voices.length} 个语音，其中中文语音 ${zhVoices.length} 个`);
+    }
+
+    // 语音加载可能需要时间
+    loadVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    // 获取测试文本
+    function getTestText() {
+      const content = document.querySelector('.test-content');
+      return content.textContent || content.innerText || '';
+    }
+
+    // 开始朗读
+    function startTTS() {
+      if (synth.speaking) {
+        synth.cancel();
+      }
+
+      const text = getTestText();
+      utterance = new SpeechSynthesisUtterance(text);
+      
+      // 设置语音
+      const voices = synth.getVoices();
+      const voiceIndex = document.getElementById('voice').value;
+      if (voices[voiceIndex]) {
+        utterance.voice = voices[voiceIndex];
+      }
+      
+      // 设置参数
+      utterance.rate = parseFloat(document.getElementById('rate').value);
+      utterance.pitch = parseFloat(document.getElementById('pitch').value);
+      utterance.volume = 1;
+
+      // 事件监听
+      utterance.onstart = () => {
+        document.getElementById('status').innerHTML = '状态：🔊 正在朗读...';
+      };
+
+      utterance.onpause = () => {
+        document.getElementById('status').innerHTML = '状态：⏸️ 已暂停';
+      };
+
+      utterance.onresume = () => {
+        document.getElementById('status').innerHTML = '状态：🔊 正在朗读...';
+      };
+
+      utterance.onend = () => {
+        document.getElementById('status').innerHTML = '状态：✅ 朗读完成';
+        document.getElementById('progress-bar').style.width = '100%';
+      };
+
+      utterance.onerror = (event) => {
+        document.getElementById('status').innerHTML = `状态：❌ 错误：${event.error}`;
+      };
+
+      utterance.onboundary = (event) => {
+        if (event.name === 'word') {
+          const progress = (event.charIndex / text.length) * 100;
+          document.getElementById('progress-bar').style.width = `${progress}%`;
+        }
+      };
+
+      synth.speak(utterance);
+      console.log('[TTS] 开始朗读');
+    }
+
+    // 暂停
+    function pauseTTS() {
+      if (synth.speaking && !synth.paused) {
+        synth.pause();
+        console.log('[TTS] 已暂停');
+      }
+    }
+
+    // 继续
+    function resumeTTS() {
+      if (synth.paused) {
+        synth.resume();
+        console.log('[TTS] 已继续');
+      }
+    }
+
+    // 停止
+    function stopTTS() {
+      synth.cancel();
+      document.getElementById('status').innerHTML = '状态：⏹️ 已停止';
+      document.getElementById('progress-bar').style.width = '0%';
+      console.log('[TTS] 已停止');
+    }
+
+    // 更新语音
+    function updateVoice() {
+      console.log('[TTS] 语音已更新');
+    }
+
+    // 更新语速
+    function updateRate() {
+      const rate = document.getElementById('rate').value;
+      document.getElementById('rate-value').textContent = rate;
+      if (utterance) {
+        utterance.rate = parseFloat(rate);
+      }
+    }
+
+    // 更新音调
+    function updatePitch() {
+      const pitch = document.getElementById('pitch').value;
+      document.getElementById('pitch-value').textContent = pitch;
+      if (utterance) {
+        utterance.pitch = parseFloat(pitch);
+      }
+    }
+
+    // 设置定时器
+    function setTimer(minutes) {
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+      
+      timerId = setTimeout(() => {
+        stopTTS();
+        document.getElementById('status').innerHTML = '状态：⏰ 定时关闭已触发';
+      }, minutes * 60 * 1000);
+      
+      document.getElementById('status').innerHTML = `状态：⏰ 定时关闭已设置 (${minutes}分钟)`;
+      console.log(`[TTS] 定时关闭已设置：${minutes}分钟`);
+    }
+
+    // 取消定时器
+    function cancelTimer() {
+      if (timerId) {
+        clearTimeout(timerId);
+        timerId = null;
+        document.getElementById('status').innerHTML = '状态：⏰ 定时关闭已取消';
+        console.log('[TTS] 定时关闭已取消');
+      }
+    }
+  </script>
+</body>
+</html>
