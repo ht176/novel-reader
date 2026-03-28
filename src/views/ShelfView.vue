@@ -7,6 +7,13 @@
         <div class="header-actions">
           <button 
             class="btn btn-icon mobile-only"
+            @click="$router.push('/calibre')"
+            title="Calibre"
+          >
+            📚
+          </button>
+          <button 
+            class="btn btn-icon mobile-only"
             @click="$router.push('/library')"
             title="书城"
           >
@@ -18,6 +25,12 @@
           >
             <span class="mobile-hidden">📥 导入</span>
             <span class="mobile-only">📥</span>
+          </button>
+          <button 
+            class="btn btn-secondary mobile-hidden"
+            @click="$router.push('/calibre')"
+          >
+            📚 Calibre
           </button>
           <button 
             class="btn btn-secondary mobile-hidden"
